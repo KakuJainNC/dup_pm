@@ -58,47 +58,60 @@ export function PmControlCenter() {
   const [assignmentPropertyId, setAssignmentPropertyId] = useState("");
   const [assignmentRole, setAssignmentRole] = useState<PropertyAssignment["role"]>("gsm");
 
+  const getAuthHeader = useCallback(async () => {
+    if (!supabase) return null;
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    return accessToken ? `Bearer ${accessToken}` : null;
+  }, [supabase]);
+
+  const requestApi = useCallback(
+    async <T,>(path: string, options?: RequestInit) => {
+      const authHeader = await getAuthHeader();
+      const response = await fetch(path, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(authHeader ? { Authorization: authHeader } : {}),
+          ...(options?.headers ?? {}),
+        },
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { data?: T; error?: string; ok?: boolean }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Request failed.");
+      }
+
+      return payload;
+    },
+    [getAuthHeader],
+  );
+
   const refreshData = useCallback(async () => {
     if (!supabase) {
       return;
     }
 
-    const [teamRes, propertiesRes, sectionsRes, assignmentsRes] = await Promise.all([
-      supabase
-        .from("team_members")
-        .select("id, full_name, email")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("properties")
-        .select("id, name, address")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("property_sections")
-        .select("id, property_id, section_name")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("property_assignments")
-        .select("id, team_member_id, property_id, role")
-        .order("created_at", { ascending: false }),
-    ]);
+    try {
+      const [teamRes, propertiesRes, sectionsRes, assignmentsRes] = await Promise.all([
+        requestApi<TeamMember[]>("/api/team-members"),
+        requestApi<Property[]>("/api/properties"),
+        requestApi<PropertySection[]>("/api/property-sections"),
+        requestApi<PropertyAssignment[]>("/api/property-assignments"),
+      ]);
 
-    const firstError = [
-      teamRes.error,
-      propertiesRes.error,
-      sectionsRes.error,
-      assignmentsRes.error,
-    ].find(Boolean);
-
-    if (firstError) {
-      setActionStatus(`Data load warning: ${firstError.message}`);
-      return;
+      setTeamMembers(teamRes?.data ?? []);
+      setProperties(propertiesRes?.data ?? []);
+      setSections(sectionsRes?.data ?? []);
+      setAssignments(assignmentsRes?.data ?? []);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to load data.";
+      setActionStatus(`Data load warning: ${message}`);
     }
-
-    setTeamMembers(teamRes.data ?? []);
-    setProperties(propertiesRes.data ?? []);
-    setSections(sectionsRes.data ?? []);
-    setAssignments(assignmentsRes.data ?? []);
-  }, [supabase]);
+  }, [requestApi, supabase]);
 
   useEffect(() => {
     if (!supabase) {
@@ -169,13 +182,17 @@ export function PmControlCenter() {
     event.preventDefault();
     if (!supabase) return;
 
-    const { error } = await supabase.from("team_members").insert({
-      full_name: memberName,
-      email: memberEmail || null,
-    });
-
-    if (error) {
-      setActionStatus(`Create team member failed: ${error.message}`);
+    try {
+      await requestApi("/api/team-members", {
+        method: "POST",
+        body: JSON.stringify({
+          full_name: memberName,
+          email: memberEmail || null,
+        }),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create member.";
+      setActionStatus(`Create team member failed: ${message}`);
       return;
     }
 
@@ -189,13 +206,17 @@ export function PmControlCenter() {
     event.preventDefault();
     if (!supabase) return;
 
-    const { error } = await supabase.from("properties").insert({
-      name: propertyName,
-      address: propertyAddress || null,
-    });
-
-    if (error) {
-      setActionStatus(`Create property failed: ${error.message}`);
+    try {
+      await requestApi("/api/properties", {
+        method: "POST",
+        body: JSON.stringify({
+          name: propertyName,
+          address: propertyAddress || null,
+        }),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create property.";
+      setActionStatus(`Create property failed: ${message}`);
       return;
     }
 
@@ -209,13 +230,17 @@ export function PmControlCenter() {
     event.preventDefault();
     if (!supabase) return;
 
-    const { error } = await supabase.from("property_sections").insert({
-      property_id: sectionPropertyId,
-      section_name: sectionName,
-    });
-
-    if (error) {
-      setActionStatus(`Create section failed: ${error.message}`);
+    try {
+      await requestApi("/api/property-sections", {
+        method: "POST",
+        body: JSON.stringify({
+          property_id: sectionPropertyId,
+          section_name: sectionName,
+        }),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create section.";
+      setActionStatus(`Create section failed: ${message}`);
       return;
     }
 
@@ -228,14 +253,18 @@ export function PmControlCenter() {
     event.preventDefault();
     if (!supabase) return;
 
-    const { error } = await supabase.from("property_assignments").insert({
-      team_member_id: assignmentMemberId,
-      property_id: assignmentPropertyId,
-      role: assignmentRole,
-    });
-
-    if (error) {
-      setActionStatus(`Create assignment failed: ${error.message}`);
+    try {
+      await requestApi("/api/property-assignments", {
+        method: "POST",
+        body: JSON.stringify({
+          team_member_id: assignmentMemberId,
+          property_id: assignmentPropertyId,
+          role: assignmentRole,
+        }),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create assignment.";
+      setActionStatus(`Create assignment failed: ${message}`);
       return;
     }
 
@@ -252,97 +281,97 @@ export function PmControlCenter() {
         : "Signed out. You can still view data if your RLS allows public read.";
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
       <h2 className="text-lg font-semibold">Phase 2: Auth + CRUD Control Center</h2>
       <div className="mt-2 flex items-center gap-3">
-        <p className="text-sm text-zinc-600">{status}</p>
+        <p className="text-sm text-[#4c6b53]">{status}</p>
         <button
           type="button"
           onClick={refreshData}
-          className="rounded-md border border-zinc-300 px-2 py-1 text-xs"
+          className="rounded-md border border-[#b8cbbd] px-2 py-1 text-xs"
         >
           Refresh Data
         </button>
       </div>
 
       <div className="mt-5 grid gap-6 md:grid-cols-2">
-        <form onSubmit={signIn} className="space-y-3 rounded-lg border border-zinc-200 p-4">
+        <form onSubmit={signIn} className="space-y-3 rounded-lg border border-[#c9d9cc] p-4">
           <h3 className="font-medium">Auth</h3>
           <input
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
             placeholder="Email"
             value={authEmail}
             onChange={(e) => setAuthEmail(e.target.value)}
           />
           <input
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
             placeholder="Password"
             type="password"
             value={authPassword}
             onChange={(e) => setAuthPassword(e.target.value)}
           />
           <div className="flex gap-2">
-            <button className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white" type="submit">
+            <button className="rounded-md bg-[#355e3b] px-3 py-2 text-sm text-[#eef5ef]" type="submit">
               Sign In
             </button>
             <button
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
               type="button"
               onClick={signUp}
             >
               Sign Up
             </button>
-            <button className="rounded-md border border-zinc-300 px-3 py-2 text-sm" type="button" onClick={signOut}>
+            <button className="rounded-md border border-[#b8cbbd] px-3 py-2 text-sm" type="button" onClick={signOut}>
               Sign Out
             </button>
           </div>
         </form>
 
-        <form onSubmit={createTeamMember} className="space-y-3 rounded-lg border border-zinc-200 p-4">
+        <form onSubmit={createTeamMember} className="space-y-3 rounded-lg border border-[#c9d9cc] p-4">
           <h3 className="font-medium">Create Team Member</h3>
           <input
             required
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
             placeholder="Full name"
             value={memberName}
             onChange={(e) => setMemberName(e.target.value)}
           />
           <input
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
             placeholder="Email (optional)"
             value={memberEmail}
             onChange={(e) => setMemberEmail(e.target.value)}
           />
-          <button className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white" type="submit">
+          <button className="rounded-md bg-[#355e3b] px-3 py-2 text-sm text-[#eef5ef]" type="submit">
             Add Member
           </button>
         </form>
 
-        <form onSubmit={createProperty} className="space-y-3 rounded-lg border border-zinc-200 p-4">
+        <form onSubmit={createProperty} className="space-y-3 rounded-lg border border-[#c9d9cc] p-4">
           <h3 className="font-medium">Create Property</h3>
           <input
             required
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
             placeholder="Property name"
             value={propertyName}
             onChange={(e) => setPropertyName(e.target.value)}
           />
           <input
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
             placeholder="Address (optional)"
             value={propertyAddress}
             onChange={(e) => setPropertyAddress(e.target.value)}
           />
-          <button className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white" type="submit">
+          <button className="rounded-md bg-[#355e3b] px-3 py-2 text-sm text-[#eef5ef]" type="submit">
             Add Property
           </button>
         </form>
 
-        <form onSubmit={createSection} className="space-y-3 rounded-lg border border-zinc-200 p-4">
+        <form onSubmit={createSection} className="space-y-3 rounded-lg border border-[#c9d9cc] p-4">
           <h3 className="font-medium">Create Property Section</h3>
           <select
             required
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
             value={sectionPropertyId}
             onChange={(e) => setSectionPropertyId(e.target.value)}
           >
@@ -355,22 +384,22 @@ export function PmControlCenter() {
           </select>
           <input
             required
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
             placeholder="Section name"
             value={sectionName}
             onChange={(e) => setSectionName(e.target.value)}
           />
-          <button className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white" type="submit">
+          <button className="rounded-md bg-[#355e3b] px-3 py-2 text-sm text-[#eef5ef]" type="submit">
             Add Section
           </button>
         </form>
 
-        <form onSubmit={createAssignment} className="space-y-3 rounded-lg border border-zinc-200 p-4 md:col-span-2">
+        <form onSubmit={createAssignment} className="space-y-3 rounded-lg border border-[#c9d9cc] p-4 md:col-span-2">
           <h3 className="font-medium">Assign Role to Property</h3>
           <div className="grid gap-3 sm:grid-cols-3">
             <select
               required
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
               value={assignmentMemberId}
               onChange={(e) => setAssignmentMemberId(e.target.value)}
             >
@@ -383,7 +412,7 @@ export function PmControlCenter() {
             </select>
             <select
               required
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
               value={assignmentPropertyId}
               onChange={(e) => setAssignmentPropertyId(e.target.value)}
             >
@@ -396,7 +425,7 @@ export function PmControlCenter() {
             </select>
             <select
               required
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
               value={assignmentRole}
               onChange={(e) => setAssignmentRole(e.target.value as PropertyAssignment["role"])}
             >
@@ -407,16 +436,16 @@ export function PmControlCenter() {
               ))}
             </select>
           </div>
-          <button className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white" type="submit">
+          <button className="rounded-md bg-[#355e3b] px-3 py-2 text-sm text-[#eef5ef]" type="submit">
             Create Assignment
           </button>
         </form>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-zinc-200 p-4">
+        <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Team Members ({teamMembers.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-zinc-700">
+          <ul className="mt-2 space-y-1 text-sm text-[#3f5f47]">
             {teamMembers.slice(0, 5).map((member) => (
               <li key={member.id}>
                 {member.full_name}
@@ -425,9 +454,9 @@ export function PmControlCenter() {
             ))}
           </ul>
         </div>
-        <div className="rounded-lg border border-zinc-200 p-4">
+        <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Properties ({properties.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-zinc-700">
+          <ul className="mt-2 space-y-1 text-sm text-[#3f5f47]">
             {properties.slice(0, 5).map((property) => (
               <li key={property.id}>
                 {property.name}
@@ -436,17 +465,17 @@ export function PmControlCenter() {
             ))}
           </ul>
         </div>
-        <div className="rounded-lg border border-zinc-200 p-4">
+        <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Sections ({sections.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-zinc-700">
+          <ul className="mt-2 space-y-1 text-sm text-[#3f5f47]">
             {sections.slice(0, 5).map((section) => (
               <li key={section.id}>{section.section_name}</li>
             ))}
           </ul>
         </div>
-        <div className="rounded-lg border border-zinc-200 p-4">
+        <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Assignments ({assignments.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-zinc-700">
+          <ul className="mt-2 space-y-1 text-sm text-[#3f5f47]">
             {assignments.slice(0, 5).map((assignment) => (
               <li key={assignment.id}>{assignment.role}</li>
             ))}
