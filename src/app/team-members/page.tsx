@@ -108,7 +108,7 @@ export default function TeamMembersPage() {
     const res = await fetch("/api/team-members", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
-      body: JSON.stringify({ full_name: name, email }),
+      body: JSON.stringify({ full_name: name, email, dial_code: dialCode, phone, role }),
     });
     const payload = await res.json() as { error?: string };
     if (!res.ok) { setError(payload.error ?? "Failed."); return; }

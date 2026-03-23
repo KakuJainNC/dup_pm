@@ -30,9 +30,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
   }
 
-  const body = (await request.json()) as { full_name?: string; email?: string };
+  const body = (await request.json()) as { full_name?: string; email?: string; dial_code?: string; phone?: string; role?: string };
   const fullName = body.full_name?.trim();
   const email = body.email?.trim() ?? null;
+  const dialCode = body.dial_code?.trim() ?? null;
+  const phone = body.phone?.trim() ?? null;
+  const role = body.role?.trim() ?? null;
 
   if (!fullName) {
     return NextResponse.json({ error: "full_name is required." }, { status: 400 });
@@ -41,6 +44,9 @@ export async function POST(request: NextRequest) {
   const { error } = await supabase.from("team_members").insert({
     full_name: fullName,
     email: email || null,
+    dial_code: dialCode,
+    phone,
+    role,
   });
 
   if (error) {
