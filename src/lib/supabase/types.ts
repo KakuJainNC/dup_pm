@@ -29,50 +29,50 @@ export type Database = {
           id: string;
           name: string;
           address: string | null;
+          property_section_id: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           name: string;
           address?: string | null;
+          property_section_id: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
           address?: string | null;
+          property_section_id?: string;
           created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "properties_property_section_id_fkey";
+            columns: ["property_section_id"];
+            isOneToOne: false;
+            referencedRelation: "property_sections";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       property_sections: {
         Row: {
           id: string;
-          property_id: string;
           section_name: string;
           created_at: string;
         };
         Insert: {
           id?: string;
-          property_id: string;
           section_name: string;
           created_at?: string;
         };
         Update: {
           id?: string;
-          property_id?: string;
           section_name?: string;
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "property_sections_property_id_fkey";
-            columns: ["property_id"];
-            isOneToOne: false;
-            referencedRelation: "properties";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
       property_assignments: {
         Row: {

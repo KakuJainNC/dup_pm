@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/supabase/types";
@@ -15,11 +15,15 @@ type Property = {
   id: string;
   name: string;
   address: string | null;
+  property_section_id: string;
+  property_sections?: {
+    id: string;
+    section_name: string;
+  } | null;
 };
 
 type PropertySection = {
   id: string;
-  property_id: string;
   section_name: string;
 };
 
@@ -33,7 +37,8 @@ type PropertyAssignment = {
 const roles: Role[] = ["gsm", "property_manager", "housekeeping", "maintenance"];
 
 export function PmControlCenter() {
-  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const [mounted, setMounted] = useState(false);
+  const [supabase, setSupabase] = useState<ReturnType<typeof getSupabaseBrowserClient>>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [actionStatus, setActionStatus] = useState("Ready");
 
@@ -50,8 +55,8 @@ export function PmControlCenter() {
 
   const [propertyName, setPropertyName] = useState("");
   const [propertyAddress, setPropertyAddress] = useState("");
+  const [propertySectionId, setPropertySectionId] = useState("");
 
-  const [sectionPropertyId, setSectionPropertyId] = useState("");
   const [sectionName, setSectionName] = useState("");
 
   const [assignmentMemberId, setAssignmentMemberId] = useState("");
@@ -112,6 +117,11 @@ export function PmControlCenter() {
       setActionStatus(`Data load warning: ${message}`);
     }
   }, [requestApi, supabase]);
+
+  useEffect(() => {
+    setMounted(true);
+    setSupabase(getSupabaseBrowserClient());
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -212,6 +222,7 @@ export function PmControlCenter() {
         body: JSON.stringify({
           name: propertyName,
           address: propertyAddress || null,
+          property_section_id: propertySectionId,
         }),
       });
     } catch (error) {
@@ -222,6 +233,7 @@ export function PmControlCenter() {
 
     setPropertyName("");
     setPropertyAddress("");
+    setPropertySectionId("");
     setActionStatus("Property created.");
     await refreshData();
   };
@@ -234,7 +246,6 @@ export function PmControlCenter() {
       await requestApi("/api/property-sections", {
         method: "POST",
         body: JSON.stringify({
-          property_id: sectionPropertyId,
           section_name: sectionName,
         }),
       });
@@ -280,11 +291,13 @@ export function PmControlCenter() {
         ? `Signed in as ${session.user.email}`
         : "Signed out. You can still view data if your RLS allows public read.";
 
+  if (!mounted) return null;
+
   return (
     <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
       <h2 className="text-lg font-semibold">Phase 2: Auth + CRUD Control Center</h2>
       <div className="mt-2 flex items-center gap-3">
-        <p className="text-sm text-[#4c6b53]">{status}</p>
+        <p className="text-sm text-black">{status}</p>
         <button
           type="button"
           onClick={refreshData}
@@ -362,6 +375,19 @@ export function PmControlCenter() {
             value={propertyAddress}
             onChange={(e) => setPropertyAddress(e.target.value)}
           />
+          <select
+            required
+            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
+            value={propertySectionId}
+            onChange={(e) => setPropertySectionId(e.target.value)}
+          >
+            <option value="">Select property section</option>
+            {sections.map((section) => (
+              <option key={section.id} value={section.id}>
+                {section.section_name}
+              </option>
+            ))}
+          </select>
           <button className="rounded-md bg-[#355e3b] px-3 py-2 text-sm text-[#eef5ef]" type="submit">
             Add Property
           </button>
@@ -369,23 +395,10 @@ export function PmControlCenter() {
 
         <form onSubmit={createSection} className="space-y-3 rounded-lg border border-[#c9d9cc] p-4">
           <h3 className="font-medium">Create Property Section</h3>
-          <select
-            required
-            className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
-            value={sectionPropertyId}
-            onChange={(e) => setSectionPropertyId(e.target.value)}
-          >
-            <option value="">Select property</option>
-            {properties.map((property) => (
-              <option key={property.id} value={property.id}>
-                {property.name}
-              </option>
-            ))}
-          </select>
           <input
             required
             className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
-            placeholder="Section name"
+            placeholder="Property section name"
             value={sectionName}
             onChange={(e) => setSectionName(e.target.value)}
           />
@@ -445,7 +458,7 @@ export function PmControlCenter() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Team Members ({teamMembers.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-[#3f5f47]">
+          <ul className="mt-2 space-y-1 text-sm text-black">
             {teamMembers.slice(0, 5).map((member) => (
               <li key={member.id}>
                 {member.full_name}
@@ -456,10 +469,13 @@ export function PmControlCenter() {
         </div>
         <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Properties ({properties.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-[#3f5f47]">
+          <ul className="mt-2 space-y-1 text-sm text-black">
             {properties.slice(0, 5).map((property) => (
               <li key={property.id}>
                 {property.name}
+                {property.property_sections?.section_name
+                  ? ` (${property.property_sections.section_name})`
+                  : ""}
                 {property.address ? ` - ${property.address}` : ""}
               </li>
             ))}
@@ -467,7 +483,7 @@ export function PmControlCenter() {
         </div>
         <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Sections ({sections.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-[#3f5f47]">
+          <ul className="mt-2 space-y-1 text-sm text-black">
             {sections.slice(0, 5).map((section) => (
               <li key={section.id}>{section.section_name}</li>
             ))}
@@ -475,7 +491,7 @@ export function PmControlCenter() {
         </div>
         <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Assignments ({assignments.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-[#3f5f47]">
+          <ul className="mt-2 space-y-1 text-sm text-black">
             {assignments.slice(0, 5).map((assignment) => (
               <li key={assignment.id}>{assignment.role}</li>
             ))}

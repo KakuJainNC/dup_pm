@@ -55,11 +55,11 @@ export default async function Home() {
   const { counts, error } = await getDashboardCounts();
 
   return (
-    <div className="min-h-screen bg-[#f3f8f4] font-sans text-[#1f3523]">
+    <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10 sm:px-10 [&_.font-bold]:text-[#355e3b] [&_.font-semibold]:text-[#355e3b]">
         <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
           <h1 className="text-3xl font-bold tracking-tight">DUP PM</h1>
-          <p className="mt-3 max-w-3xl text-[#4c6b53]">
+          <p className="mt-3 max-w-3xl text-black">
             Manage team members, properties, sections, and role-based assignments
             from one control center.
           </p>
@@ -75,19 +75,19 @@ export default async function Home() {
           ) : (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3">
-                <p className="text-xs text-[#6b8a72]">Team Members</p>
+                <p className="text-xs text-black">Team Members</p>
                 <p className="mt-1 text-2xl font-semibold">{counts?.teamMembers}</p>
               </div>
               <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3">
-                <p className="text-xs text-[#6b8a72]">Properties</p>
+                <p className="text-xs text-black">Properties</p>
                 <p className="mt-1 text-2xl font-semibold">{counts?.properties}</p>
               </div>
               <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3">
-                <p className="text-xs text-[#6b8a72]">Property Sections</p>
+                <p className="text-xs text-black">Property Sections</p>
                 <p className="mt-1 text-2xl font-semibold">{counts?.sections}</p>
               </div>
               <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3">
-                <p className="text-xs text-[#6b8a72]">Assignments</p>
+                <p className="text-xs text-black">Assignments</p>
                 <p className="mt-1 text-2xl font-semibold">{counts?.assignments}</p>
               </div>
             </div>

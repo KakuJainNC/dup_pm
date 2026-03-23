@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("properties")
-    .select("id, name, address")
+    .select("id, name, address, property_section_id, property_sections(id, section_name)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -30,17 +30,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
   }
 
-  const body = (await request.json()) as { name?: string; address?: string };
+  const body = (await request.json()) as {
+    name?: string;
+    address?: string;
+    property_section_id?: string;
+  };
   const name = body.name?.trim();
   const address = body.address?.trim() ?? null;
+  const propertySectionId = body.property_section_id?.trim();
 
-  if (!name) {
-    return NextResponse.json({ error: "name is required." }, { status: 400 });
+  if (!name || !propertySectionId) {
+    return NextResponse.json(
+      { error: "name and property_section_id are required." },
+      { status: 400 },
+    );
   }
 
   const { error } = await supabase.from("properties").insert({
     name,
     address: address || null,
+    property_section_id: propertySectionId,
   });
 
   if (error) {
