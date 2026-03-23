@@ -1,6 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { PmControlCenter } from "@/components/pm-control-center";
 
+export const dynamic = "force-dynamic";
+
 type DashboardCounts = {
   teamMembers: number;
   properties: number;

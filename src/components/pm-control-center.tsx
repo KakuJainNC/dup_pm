@@ -108,6 +108,7 @@ export function PmControlCenter() {
     const syncSession = async () => {
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
+      await refreshData();
     };
 
     syncSession();
@@ -116,12 +117,13 @@ export function PmControlCenter() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
+      void refreshData();
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, refreshData]);
 
   const signUp = async () => {
     if (!supabase) return;
