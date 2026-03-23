@@ -14,12 +14,15 @@ export async function GET(request: NextRequest) {
   if (rolesRes.error) return NextResponse.json({ error: rolesRes.error.message }, { status: 400 });
   if (membersRes.error) return NextResponse.json({ error: membersRes.error.message }, { status: 400 });
 
-  const counts = (membersRes.data ?? []).reduce<Record<string, number>>((acc, m) => {
-    if (m.role) acc[m.role] = (acc[m.role] ?? 0) + 1;
-    return acc;
-  }, {});
+  const members = (membersRes.data ?? []) as { role: string | null }[];
+  const roles = (rolesRes.data ?? []) as { id: string; name: string }[];
 
-  const data = (rolesRes.data ?? []).map((r) => ({ ...r, member_count: counts[r.name] ?? 0 }));
+  const counts: Record<string, number> = {};
+  for (const m of members) {
+    if (m.role) counts[m.role] = (counts[m.role] ?? 0) + 1;
+  }
+
+  const data = roles.map((r) => ({ ...r, member_count: counts[r.name] ?? 0 }));
 
   return NextResponse.json({ data });
 }
