@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { PageBand } from "@/components/page-band";
 
 type PropertySection = {
   id: string;
@@ -60,9 +61,7 @@ export default function PropertySectionsPage() {
 
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
-      <div className="bg-[#355e3b] px-10 py-4 text-center">
-        <h1 className="text-xl font-semibold text-white uppercase tracking-widest">Sections</h1>
-      </div>
+      <PageBand title="Sections" />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 sm:px-10">
         <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
           <div className="flex items-center justify-between">

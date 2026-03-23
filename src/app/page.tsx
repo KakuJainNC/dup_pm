@@ -85,8 +85,8 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10 sm:px-10">
-        <HeroHeader />
+      <HeroHeader />
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 pb-10 pt-6 sm:px-10">
 
         {error ? (
           <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">

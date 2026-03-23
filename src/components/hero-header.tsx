@@ -22,33 +22,32 @@ export function HeroHeader() {
   }, []);
 
   return (
-    <section className="relative overflow-hidden rounded-2xl shadow-sm">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#2d5233] via-[#355e3b] to-[#4a7c52]" />
+    <div>
+      <section className="relative">
+        {/* Background image */}
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://images.pexels.com/photos/7810361/pexels-photo-7810361.jpeg')" }} />
+        {/* Darkening overlay */}
+        <div className="absolute inset-0 bg-black/60" />
 
-      {/* Content */}
-      <div className="relative flex flex-col items-center px-6 py-10 text-center">
-        {/* Circular profile picture */}
-        <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-white/40 shadow-lg">
-          <img
-            src="/default-user.jpg"
-            alt="Profile"
-            className="h-full w-full object-cover"
-          />
+        {/* Welcome title */}
+        <div className="relative flex flex-col items-center px-6 pb-14 pt-8 text-center">
+          <p className="text-2xl font-bold text-white">
+            Welcome to Property Management app
+          </p>
         </div>
 
-        {/* Greeting */}
-        {displayName && (
-          <p className="mt-4 text-lg font-medium text-white/90">
-            Hello, {displayName}
-          </p>
-        )}
+        {/* Profile picture — half inside band, half below */}
+        <div className="absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2 h-24 w-24 overflow-hidden rounded-full border-4 border-[#f8e7d1] shadow-lg">
+          <img src="/default-user.jpg" alt="Profile" className="h-full w-full object-cover" />
+        </div>
+      </section>
 
-        {/* Tagline */}
-        <p className="mt-1 text-2xl font-bold text-white">
-          Welcome to Property Management app
+      {/* Greeting — sits just below the profile image */}
+      {displayName && (
+        <p className="pt-14 pb-1 text-center text-lg font-medium text-[#355e3b]">
+          Hello, {displayName}
         </p>
-      </div>
-    </section>
+      )}
+    </div>
   );
 }
