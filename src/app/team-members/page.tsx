@@ -7,6 +7,7 @@ type TeamMember = {
   id: string;
   full_name: string;
   email: string | null;
+  role: string | null;
 };
 
 const DIAL_CODES = [
@@ -133,7 +134,7 @@ export default function TeamMembersPage() {
       <div className="bg-[#355e3b] px-10 py-4 text-center">
         <h1 className="text-xl font-semibold text-white uppercase tracking-widest">Team</h1>
       </div>
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10 sm:px-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 sm:px-10">
         <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-[#355e3b]">Team Members</h1>
@@ -156,24 +157,43 @@ export default function TeamMembersPage() {
           {filtered.length === 0 ? (
             <p className="mt-4 text-sm text-black">No members found.</p>
           ) : (
-            <ul className="mt-4 space-y-2">
-              {filtered.map((m) => {
-                const img = m.email ? imageMap[m.email] : null;
-                return (
-                  <li key={m.id} className="flex items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3">
-                    {img ? (
-                      <img src={img} alt={m.full_name} className="h-8 w-8 rounded-full object-cover shrink-0" />
-                    ) : (
-                      <img src="/default-user.jpg" alt={m.full_name} className="h-8 w-8 rounded-full object-cover shrink-0" />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">{m.full_name}</p>
-                      {m.email && <p className="text-xs text-black">{m.email}</p>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="mt-4 overflow-hidden rounded-xl border border-[#c9d9cc]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#c9d9cc] bg-[#f3f8f4]">
+                    <th className="w-12 px-4 py-3"></th>
+                    <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Full Name</th>
+                    <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Email</th>
+                    <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((m, i) => {
+                    const img = m.email ? imageMap[m.email] : null;
+                    return (
+                      <tr key={m.id} className={`border-b border-[#c9d9cc] last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-[#f9fcfa]"}`}>
+                        <td className="px-4 py-3">
+                          <img
+                            src={img ?? "/default-user.jpg"}
+                            alt={m.full_name}
+                            className="h-8 w-8 rounded-full object-cover"
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-medium">{m.full_name}</td>
+                        <td className="px-4 py-3 text-black/70">{m.email ?? "—"}</td>
+                        <td className="px-4 py-3">
+                          {m.role ? (
+                            <span className="rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-medium text-[#355e3b] capitalize">
+                              {m.role.replace(/_/g, " ")}
+                            </span>
+                          ) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </main>

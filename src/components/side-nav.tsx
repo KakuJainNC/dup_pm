@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ArrowUpRight } from "@phosphor-icons/react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const navItems = [
   {
@@ -41,11 +43,24 @@ const navItems = [
 
 export function SideNav() {
   const pathname = usePathname();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      setUserEmail(data.session?.user?.email ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUserEmail(session?.user?.email ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <aside className="fixed left-0 top-0 h-full w-52 border-r border-[#c9d9cc] bg-[#fcfefd] flex flex-col">
       <div className="flex items-center gap-2 px-5 py-5 border-b border-[#c9d9cc]">
-        <img src="/logo.png" alt="Properties Management" className="h-7 w-7 rounded-md" />
+        <img src="/logo.png" alt="PM App" className="h-7 w-7 rounded-md" />
         <span className="font-bold text-[#355e3b]">PM App</span>
       </div>
 
@@ -71,6 +86,20 @@ export function SideNav() {
           );
         })}
       </nav>
+
+      {/* Signed-in user */}
+      <div className="border-t border-[#c9d9cc] px-4 py-4">
+        {userEmail ? (
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#355e3b] text-xs font-bold text-white">
+              {userEmail[0].toUpperCase()}
+            </div>
+            <p className="truncate text-xs text-black">{userEmail}</p>
+          </div>
+        ) : (
+          <p className="text-xs text-black/50">Not signed in</p>
+        )}
+      </div>
     </aside>
   );
 }

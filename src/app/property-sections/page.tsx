@@ -63,7 +63,7 @@ export default function PropertySectionsPage() {
       <div className="bg-[#355e3b] px-10 py-4 text-center">
         <h1 className="text-xl font-semibold text-white uppercase tracking-widest">Sections</h1>
       </div>
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10 sm:px-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 sm:px-10">
         <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-[#355e3b]">Sections</h1>
@@ -86,13 +86,18 @@ export default function PropertySectionsPage() {
           {filtered.length === 0 ? (
             <p className="mt-4 text-sm text-black">No sections found.</p>
           ) : (
-            <ul className="mt-4 space-y-2">
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {filtered.map((s) => (
-                <li key={s.id} className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3 text-sm font-medium">
-                  {s.section_name}
-                </li>
+                <div key={s.id} className="flex flex-col items-center justify-center rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-6 text-center shadow-sm hover:shadow-md transition-shadow">
+                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#355e3b]/10 text-[#355e3b]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-semibold text-[#355e3b]">{s.section_name}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </section>
       </main>
