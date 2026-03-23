@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
+import { Toast } from "@/components/toast";
 
 type Property = {
   id: string;
@@ -27,6 +28,7 @@ export default function PropertiesPage() {
   const [propAddress, setPropAddress] = useState("");
   const [propSectionId, setPropSectionId] = useState("");
   const [error, setError] = useState("");
+  const [showToast, setShowToast] = useState(false);
 
   const getAuthHeader = useCallback(async () => {
     if (!supabase) return null;
@@ -68,6 +70,8 @@ export default function PropertiesPage() {
     setPropSectionId("");
     setShowModal(false);
     await fetchData();
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
   };
 
   const filtered = properties.filter((p) =>
@@ -163,6 +167,7 @@ export default function PropertiesPage() {
           </div>
         </div>
       )}
+      {showToast && <Toast message="Done" />}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
+import { Toast } from "@/components/toast";
 
 type TeamMember = {
   id: string;
@@ -25,7 +26,6 @@ const DIAL_CODES = [
   { code: "+86",  label: "🇨🇳 +86 | CHN" },
 ];
 
-const ROLES = ["gsm", "property_manager", "housekeeping", "maintenance"];
 const STORAGE_KEY = "pm_member_images";
 
 function getImageMap(): Record<string, string> {
@@ -44,6 +44,7 @@ export default function TeamMembersPage() {
   const [mounted, setMounted] = useState(false);
   const [supabase] = useState(() => getSupabaseBrowserClient());
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [roles, setRoles] = useState<string[]>([]);
   const [imageMap, setImageMap] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -54,8 +55,9 @@ export default function TeamMembersPage() {
   const [email, setEmail] = useState("");
   const [dialCode, setDialCode] = useState("+52");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState(ROLES[0]);
+  const [role, setRole] = useState("");
   const [error, setError] = useState("");
+  const [showToast, setShowToast] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,11 +74,20 @@ export default function TeamMembersPage() {
     setMembers((payload.data ?? []).sort((a, b) => a.full_name.localeCompare(b.full_name)));
   }, []);
 
+  const fetchRoles = useCallback(async () => {
+    const res = await fetch("/api/roles");
+    const payload = await res.json() as { data?: { name: string }[] };
+    const names = (payload.data ?? []).map((r) => r.name);
+    setRoles(names);
+    setRole((prev) => prev || names[0] || "");
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     setImageMap(getImageMap());
     void fetchMembers();
-  }, [fetchMembers]);
+    void fetchRoles();
+  }, [fetchMembers, fetchRoles]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,7 +108,7 @@ export default function TeamMembersPage() {
     setEmail("");
     setDialCode("+52");
     setPhone("");
-    setRole(ROLES[0]);
+    setRole(roles[0] ?? "");
     setError("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -121,6 +132,8 @@ export default function TeamMembersPage() {
     resetForm();
     setShowModal(false);
     await fetchMembers();
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
   };
 
   const filtered = members.filter((m) =>
@@ -273,8 +286,8 @@ export default function TeamMembersPage() {
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
               >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>{r.replace("_", " ")}</option>
+                {roles.map((r) => (
+                  <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
                 ))}
               </select>
 
@@ -286,6 +299,7 @@ export default function TeamMembersPage() {
           </div>
         </div>
       )}
+      {showToast && <Toast message="Done" />}
     </div>
   );
 }

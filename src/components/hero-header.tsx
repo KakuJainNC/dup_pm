@@ -27,7 +27,7 @@ export function HeroHeader() {
         {/* Background image */}
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://images.pexels.com/photos/7810361/pexels-photo-7810361.jpeg')" }} />
         {/* Darkening overlay */}
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-black/[0.52]" />
 
         {/* Welcome title */}
         <div className="relative flex flex-col items-center px-6 pb-14 pt-8 text-center">
