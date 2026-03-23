@@ -5,7 +5,8 @@ export async function GET(request: NextRequest) {
   const supabase = getSupabaseRouteClient(request.headers.get("authorization"));
   if (!supabase) return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
 
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
     .from("notifications")
     .select("id, entity, recipient_name, recipient_email")
     .order("created_at", { ascending: true });
@@ -25,7 +26,8 @@ export async function PATCH(request: NextRequest) {
 
   if (!body.entity) return NextResponse.json({ error: "entity is required." }, { status: 400 });
 
-  const { error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
     .from("notifications")
     .update({ recipient_name: body.recipient_name ?? null, recipient_email: body.recipient_email ?? null })
     .eq("entity", body.entity);

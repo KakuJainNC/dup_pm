@@ -5,8 +5,9 @@ export async function GET(request: NextRequest) {
   const supabase = getSupabaseRouteClient(request.headers.get("authorization"));
   if (!supabase) return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [rolesRes, membersRes] = await Promise.all([
-    supabase.from("roles").select("id, name").order("name", { ascending: true }),
+    (supabase as any).from("roles").select("id, name").order("name", { ascending: true }),
     supabase.from("team_members").select("role"),
   ]);
 
@@ -35,7 +36,8 @@ export async function POST(request: NextRequest) {
 
   if (!name) return NextResponse.json({ error: "Role name is required." }, { status: 400 });
 
-  const { error } = await supabase.from("roles").insert({ name });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("roles").insert({ name });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ ok: true });

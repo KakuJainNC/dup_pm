@@ -30,7 +30,7 @@ export function HeroHeader() {
         <div className="absolute inset-0 bg-black/[0.52]" />
 
         {/* Welcome title */}
-        <div className="relative flex flex-col items-center px-6 pb-14 pt-8 text-center">
+        <div className="relative flex flex-col items-center px-6 pb-[70px] pt-10 text-center">
           <p className="text-2xl font-bold text-white">
             Welcome to Property Management app
           </p>
