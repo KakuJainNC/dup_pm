@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { ShieldCheck } from "@phosphor-icons/react";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
 
@@ -90,27 +91,16 @@ export default function RolesPage() {
           {filtered.length === 0 ? (
             <p className="mt-4 text-sm text-black">No roles found.</p>
           ) : (
-            <div className="mt-6 overflow-hidden rounded-xl border border-[#c9d9cc]">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#c9d9cc] bg-[#f3f8f4]">
-                    <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Role</th>
-                    <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Members</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((r, i) => (
-                    <tr key={r.id} className={`border-b border-[#c9d9cc] last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-[#f9fcfa]"}`}>
-                      <td className="px-4 py-3 font-medium capitalize">{r.name.replace(/_/g, " ")}</td>
-                      <td className="px-4 py-3">
-                        <span className="rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-semibold text-[#355e3b]">
-                          {r.member_count} {r.member_count === 1 ? "member" : "members"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {filtered.map((r) => (
+                <div key={r.id} className="flex flex-col items-center justify-center rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-6 text-center shadow-sm hover:shadow-md transition-shadow">
+                  <ShieldCheck size={32} className="mb-2 text-[#355e3b]" />
+                  <p className="text-sm font-semibold text-[#355e3b] capitalize">{r.name.replace(/_/g, " ")}</p>
+                  <span className="mt-2 rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-medium text-[#355e3b]">
+                    {r.member_count} {r.member_count === 1 ? "member" : "members"}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </section>
