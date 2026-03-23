@@ -1,0 +1,122 @@
+export type Role = "gsm" | "property_manager" | "housekeeping" | "maintenance";
+
+export type Database = {
+  public: {
+    Tables: {
+      team_members: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          email?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          email?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      properties: {
+        Row: {
+          id: string;
+          name: string;
+          address: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          address?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          address?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      property_sections: {
+        Row: {
+          id: string;
+          property_id: string;
+          section_name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          property_id: string;
+          section_name: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          property_id?: string;
+          section_name?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_sections_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      property_assignments: {
+        Row: {
+          id: string;
+          team_member_id: string;
+          property_id: string;
+          role: Role;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_member_id: string;
+          property_id: string;
+          role: Role;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_member_id?: string;
+          property_id?: string;
+          role?: Role;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_assignments_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "property_assignments_team_member_id_fkey";
+            columns: ["team_member_id"];
+            isOneToOne: false;
+            referencedRelation: "team_members";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+};

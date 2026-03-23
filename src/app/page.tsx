@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { PmControlCenter } from "@/components/pm-control-center";
 
 type DashboardCounts = {
   teamMembers: number;
@@ -130,6 +131,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key`}
             </div>
           )}
         </section>
+
+        <PmControlCenter />
       </main>
     </div>
   );
