@@ -295,7 +295,7 @@ export function PmControlCenter() {
 
   return (
     <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-      <h2 className="text-lg font-semibold">Phase 2: Auth + CRUD Control Center</h2>
+      <h2 className="text-lg font-semibold text-[#355e3b]">Phase 2: Auth + CRUD Control Center</h2>
       <div className="mt-2 flex items-center gap-3">
         <p className="text-sm text-black">{status}</p>
         <button
@@ -458,11 +458,18 @@ export function PmControlCenter() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-[#c9d9cc] p-4">
           <h4 className="font-medium">Team Members ({teamMembers.length})</h4>
-          <ul className="mt-2 space-y-1 text-sm text-black">
+          <ul className="mt-2 space-y-2 text-sm text-black">
             {teamMembers.slice(0, 5).map((member) => (
-              <li key={member.id}>
-                {member.full_name}
-                {member.email ? ` (${member.email})` : ""}
+              <li key={member.id} className="flex items-center gap-2">
+                <img
+                  src="/default-user.jpg"
+                  alt="user"
+                  className="h-7 w-7 rounded-full object-cover"
+                />
+                <span>
+                  {member.full_name}
+                  {member.email ? ` (${member.email})` : ""}
+                </span>
               </li>
             ))}
           </ul>

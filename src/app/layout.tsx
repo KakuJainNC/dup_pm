@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DUP PM",
   description: "Property management app bootcamp project",
+  icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({
