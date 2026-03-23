@@ -10,7 +10,7 @@ const navItems = [
   {
     label: "Home",
     href: "/",
-    icon: <ArrowUpRight size={20} />,
+    icon: <ArrowUpRight size={20} weight="bold" />,
   },
   {
     label: "Sections",
@@ -51,7 +51,7 @@ const navItems = [
   {
     label: "Roles",
     href: "/roles",
-    icon: <ShieldCheck size={20} />,
+    icon: <ShieldCheck size={20} weight="bold" />,
   },
 ];
 
