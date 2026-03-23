@@ -1,5 +1,56 @@
-export default function Home() {
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+
+type DashboardCounts = {
+  teamMembers: number;
+  properties: number;
+  sections: number;
+  assignments: number;
+};
+
+async function getDashboardCounts() {
+  const supabase = getSupabaseServerClient();
+
+  if (!supabase) {
+    return {
+      counts: null,
+      error:
+        "Missing environment variables. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.",
+    };
+  }
+
+  const [teamRes, propertyRes, sectionRes, assignmentRes] = await Promise.all([
+    supabase.from("team_members").select("*", { count: "exact", head: true }),
+    supabase.from("properties").select("*", { count: "exact", head: true }),
+    supabase
+      .from("property_sections")
+      .select("*", { count: "exact", head: true }),
+    supabase
+      .from("property_assignments")
+      .select("*", { count: "exact", head: true }),
+  ]);
+
+  const errors = [teamRes.error, propertyRes.error, sectionRes.error, assignmentRes.error].filter(Boolean);
+  if (errors.length > 0) {
+    return {
+      counts: null,
+      error:
+        "Supabase tables are not ready yet. Run the SQL schema from the bootcamp step, then refresh.",
+    };
+  }
+
+  const counts: DashboardCounts = {
+    teamMembers: teamRes.count ?? 0,
+    properties: propertyRes.count ?? 0,
+    sections: sectionRes.count ?? 0,
+    assignments: assignmentRes.count ?? 0,
+  };
+
+  return { counts, error: null };
+}
+
+export default async function Home() {
   const roleList = ["GSM", "Property Manager", "Housekeeping", "Maintenance"];
+  const { counts, error } = await getDashboardCounts();
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900">
@@ -49,6 +100,35 @@ export default function Home() {
             {`NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key`}
           </pre>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">Live Supabase Snapshot</h2>
+
+          {error ? (
+            <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {error}
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <p className="text-xs text-zinc-500">Team Members</p>
+                <p className="mt-1 text-2xl font-semibold">{counts?.teamMembers}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <p className="text-xs text-zinc-500">Properties</p>
+                <p className="mt-1 text-2xl font-semibold">{counts?.properties}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <p className="text-xs text-zinc-500">Property Sections</p>
+                <p className="mt-1 text-2xl font-semibold">{counts?.sections}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <p className="text-xs text-zinc-500">Assignments</p>
+                <p className="mt-1 text-2xl font-semibold">{counts?.assignments}</p>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>
