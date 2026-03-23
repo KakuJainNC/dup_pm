@@ -46,7 +46,7 @@ export function HeroHeader() {
 
         {/* Tagline */}
         <p className="mt-1 text-2xl font-bold text-white">
-          Welcome to Property Management App
+          Welcome to Property Management app
         </p>
       </div>
     </section>

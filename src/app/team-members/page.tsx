@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type TeamMember = {
@@ -10,17 +9,53 @@ type TeamMember = {
   email: string | null;
 };
 
+const DIAL_CODES = [
+  { code: "+52",  label: "🇲🇽 +52 | MEX" },
+  { code: "+1",   label: "🇺🇸 +1 | USA" },
+  { code: "+44",  label: "🇬🇧 +44 | GBR" },
+  { code: "+91",  label: "🇮🇳 +91 | IND" },
+  { code: "+61",  label: "🇦🇺 +61 | AUS" },
+  { code: "+49",  label: "🇩🇪 +49 | DEU" },
+  { code: "+33",  label: "🇫🇷 +33 | FRA" },
+  { code: "+971", label: "🇦🇪 +971 | ARE" },
+  { code: "+65",  label: "🇸🇬 +65 | SGP" },
+  { code: "+81",  label: "🇯🇵 +81 | JPN" },
+  { code: "+86",  label: "🇨🇳 +86 | CHN" },
+];
+
+const ROLES = ["gsm", "property_manager", "housekeeping", "maintenance"];
+const STORAGE_KEY = "pm_member_images";
+
+function getImageMap(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+  } catch { return {}; }
+}
+
+function saveImage(email: string, dataUrl: string) {
+  const map = getImageMap();
+  map[email] = dataUrl;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+}
+
 export default function TeamMembersPage() {
   const [mounted, setMounted] = useState(false);
   const [supabase] = useState(() => getSupabaseBrowserClient());
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
-  const [status, setStatus] = useState("");
-
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [imageMap, setImageMap] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+
   const [name, setName] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [dialCode, setDialCode] = useState("+52");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState(ROLES[0]);
+  const [error, setError] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getAuthHeader = useCallback(async () => {
     if (!supabase) return null;
@@ -37,129 +72,201 @@ export default function TeamMembersPage() {
 
   useEffect(() => {
     setMounted(true);
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => {
-      setSignedInEmail(data.session?.user?.email ?? null);
-    });
+    setImageMap(getImageMap());
     void fetchMembers();
-  }, [supabase, fetchMembers]);
+  }, [fetchMembers]);
 
-  const signIn = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!supabase) return;
-    const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-    if (error) { setStatus(`Sign in failed: ${error.message}`); return; }
-    const { data } = await supabase.auth.getSession();
-    setSignedInEmail(data.session?.user?.email ?? null);
-    setStatus("Signed in.");
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setImagePreview(result);
+      setImageDataUrl(result);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const signOut = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    setSignedInEmail(null);
-    setStatus("Signed out.");
+  const resetForm = () => {
+    setName("");
+    setImagePreview(null);
+    setImageDataUrl(null);
+    setEmail("");
+    setDialCode("+52");
+    setPhone("");
+    setRole(ROLES[0]);
+    setError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const addMember = async (e: FormEvent) => {
     e.preventDefault();
+    setError("");
     const authHeader = await getAuthHeader();
-    if (!authHeader) { setStatus("Sign in to add members."); return; }
+    if (!authHeader) { setError("You must be signed in to add members."); return; }
     const res = await fetch("/api/team-members", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
-      body: JSON.stringify({ full_name: name, email: email || null }),
+      body: JSON.stringify({ full_name: name, email }),
     });
     const payload = await res.json() as { error?: string };
-    if (!res.ok) { setStatus(payload.error ?? "Failed."); return; }
-    setName("");
-    setEmail("");
-    setStatus("Team member added.");
+    if (!res.ok) { setError(payload.error ?? "Failed."); return; }
+    if (imageDataUrl && email) {
+      saveImage(email, imageDataUrl);
+      setImageMap(getImageMap());
+    }
+    resetForm();
+    setShowModal(false);
     await fetchMembers();
   };
+
+  const filtered = members.filter((m) =>
+    m.full_name.toLowerCase().includes(search.toLowerCase()) ||
+    (m.email ?? "").toLowerCase().includes(search.toLowerCase())
+  );
 
   if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
+      <div className="bg-[#355e3b] px-10 py-4 text-center">
+        <h1 className="text-xl font-semibold text-white uppercase tracking-widest">Team</h1>
+      </div>
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10 sm:px-10">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm text-[#355e3b] hover:underline">← Home</Link>
-        </div>
-
         <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-[#355e3b]">Team Members</h1>
-
-          {signedInEmail ? (
-            <div className="mt-2 flex items-center gap-3">
-              <p className="text-sm text-black">Signed in as {signedInEmail}</p>
-              <button onClick={signOut} className="rounded-md border border-[#b8cbbd] px-2 py-1 text-xs">Sign Out</button>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-[#355e3b]">Team Members</h1>
+            <div className="flex items-center gap-2">
+              <input
+                className="w-36 rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                placeholder="Search team"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <button
+                onClick={() => { resetForm(); setShowModal(true); }}
+                className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors"
+              >
+                + Add
+              </button>
             </div>
-          ) : (
-            <form onSubmit={signIn} className="mt-4 flex flex-wrap items-end gap-2">
-              <input
-                className="rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
-                placeholder="Email"
-                value={authEmail}
-                onChange={(e) => setAuthEmail(e.target.value)}
-              />
-              <input
-                type="password"
-                className="rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
-                placeholder="Password"
-                value={authPassword}
-                onChange={(e) => setAuthPassword(e.target.value)}
-              />
-              <button className="rounded-md bg-[#355e3b] px-3 py-2 text-sm text-[#eef5ef]" type="submit">Sign In</button>
-            </form>
-          )}
+          </div>
 
-          {status && <p className="mt-2 text-sm text-black">{status}</p>}
-        </section>
-
-        <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-          <h2 className="font-semibold text-[#355e3b]">Add Team Member</h2>
-          <form onSubmit={addMember} className="mt-4 space-y-3">
-            <input
-              required
-              className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
-              placeholder="Full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              className="w-full rounded-md border border-[#b8cbbd] px-3 py-2 text-sm"
-              placeholder="Email (optional)"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <button className="rounded-md bg-[#355e3b] px-4 py-2 text-sm text-[#eef5ef]" type="submit">
-              Add Member
-            </button>
-          </form>
-        </section>
-
-        <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-          <h2 className="font-semibold text-[#355e3b]">Team Members ({members.length})</h2>
-          {members.length === 0 ? (
-            <p className="mt-3 text-sm text-black">No team members yet.</p>
+          {filtered.length === 0 ? (
+            <p className="mt-4 text-sm text-black">No members found.</p>
           ) : (
             <ul className="mt-4 space-y-2">
-              {members.map((m) => (
-                <li key={m.id} className="flex items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#355e3b" viewBox="0 0 256 256" className="shrink-0">
-                    <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm88,104a87.62,87.62,0,0,1-6.4,32.94l-44.7-27.49a15.92,15.92,0,0,0-6.24-2.23l-22.82-3.08a16.11,16.11,0,0,0-16,7.86h-8.72l-3.8-7.86a15.91,15.91,0,0,0-11-8.67l-8-1.73L96.14,104h16.71a16.06,16.06,0,0,0,7.73-2l12.25-6.76a16.62,16.62,0,0,0,3-2.14l26.91-24.34A15.93,15.93,0,0,0,166,49.1l-.36-.65A88.11,88.11,0,0,1,216,128ZM143.31,41.34,152,56.9,125.09,81.24,112.85,88H96.14a16,16,0,0,0-13.88,8l-8.73,15.23L63.38,84.19,74.32,58.32a87.87,87.87,0,0,1,69-17ZM40,128a87.53,87.53,0,0,1,8.54-37.8l11.34,30.27a16,16,0,0,0,11.62,10l21.43,4.61L96.74,143a16.09,16.09,0,0,0,14.4,9h1.48l-7.23,16.23a16,16,0,0,0,2.86,17.37l.14.14L128,205.94l-1.94,10A88.11,88.11,0,0,1,40,128Zm102.58,86.78,1.13-5.81a16.09,16.09,0,0,0-4-13.9,1.85,1.85,0,0,1-.14-.14L120,174.74,133.7,144l22.82,3.08,45.72,28.12A88.18,88.18,0,0,1,142.58,214.78Z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium">{m.full_name}</p>
-                    {m.email && <p className="text-xs text-black">{m.email}</p>}
-                  </div>
-                </li>
-              ))}
+              {filtered.map((m) => {
+                const img = m.email ? imageMap[m.email] : null;
+                return (
+                  <li key={m.id} className="flex items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3">
+                    {img ? (
+                      <img src={img} alt={m.full_name} className="h-8 w-8 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <img src="/default-user.jpg" alt={m.full_name} className="h-8 w-8 rounded-full object-cover shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">{m.full_name}</p>
+                      {m.email && <p className="text-xs text-black">{m.email}</p>}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
       </main>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#355e3b]">Add Team Member</h2>
+              <button onClick={() => { resetForm(); setShowModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+            </div>
+            <form onSubmit={addMember} className="mt-4 space-y-3">
+
+              {/* Image upload */}
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="h-20 w-20 cursor-pointer overflow-hidden rounded-full border-2 border-dashed border-[#b8cbbd] hover:border-[#355e3b] transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <img
+                    src={imagePreview ?? "/default-user.jpg"}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <p className="text-xs text-black">Click to upload photo (optional)</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+              </div>
+
+              {/* Name */}
+              <input
+                required
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+
+              {/* Email */}
+              <input
+                required
+                type="email"
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              {/* Dial code + Phone */}
+              <div className="flex gap-2">
+                <select
+                  className="w-[35%] rounded-lg border border-[#b8cbbd] px-2 py-2 text-sm outline-none focus:border-[#355e3b]"
+                  value={dialCode}
+                  onChange={(e) => setDialCode(e.target.value)}
+                >
+                  {DIAL_CODES.map((d) => (
+                    <option key={d.code} value={d.code}>{d.label}</option>
+                  ))}
+                </select>
+                <input
+                  className="w-[65%] rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                  placeholder="Phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+
+              {/* Role */}
+              <select
+                required
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>{r.replace("_", " ")}</option>
+                ))}
+              </select>
+
+              {error && <p className="text-xs text-red-600">{error}</p>}
+              <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
+                Add Member
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -49,7 +49,7 @@ async function getDashboardCounts() {
 
 const navItems = [
   {
-    label: "Property Sections",
+    label: "Sections",
     href: "/property-sections",
     description: "Organise properties into sections",
     icon: (
@@ -104,7 +104,7 @@ export default async function Home() {
             </div>
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
               <p className="text-3xl font-bold text-[#355e3b]">{counts?.sections}</p>
-              <p className="mt-1 text-sm text-black">Property Sections</p>
+              <p className="mt-1 text-sm text-black">Sections</p>
             </div>
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
               <p className="text-3xl font-bold text-[#355e3b]">{counts?.assignments}</p>
@@ -113,22 +113,22 @@ export default async function Home() {
           </div>
         )}
 
-        <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#355e3b]">Navigate</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex flex-col items-center gap-3 rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] p-6 text-center transition-colors hover:border-[#355e3b] hover:bg-[#e8f0ea]"
-              >
-                <span className="text-[#355e3b]">{item.icon}</span>
-                <span className="font-semibold text-[#355e3b]">{item.label}</span>
-                <span className="text-xs text-black">{item.description}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
+        <div className="flex justify-around py-4">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group flex flex-col items-center gap-2 text-[#355e3b] transition-all duration-200 hover:scale-110 hover:opacity-100 opacity-70"
+            >
+              <span className="transition-transform duration-200 group-hover:drop-shadow-md">
+                {item.icon}
+              </span>
+              <span className="text-xs font-semibold tracking-wide">
+                {item.label}
+              </span>
+            </Link>
+          ))}
+        </div>
       </main>
     </div>
   );
