@@ -97,7 +97,7 @@ export default function RolesPage() {
     setPermError("");
     setPermLoading(true);
 
-    const res = await fetch(`/api/role-permissions?role=${encodeURIComponent(role.name)}`);
+    const res = await fetch(`/api/role-permissions?role=${encodeURIComponent(role.name)}`, { cache: "no-store" });
     const payload = await res.json() as { data?: { entity: string; can_add: boolean; can_edit: string }[] };
 
     const saved = payload.data ?? [];
