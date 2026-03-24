@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [rolesRes, membersRes] = await Promise.all([
-    (supabase as any).from("roles").select("id, name").order("name", { ascending: true }),
+    (supabase as any).from("roles").select("id, name, created_at, created_by").order("name", { ascending: true }),
     (supabase as any).from("team_members").select("role"),
   ]);
 
@@ -15,14 +15,14 @@ export async function GET(request: NextRequest) {
   if (membersRes.error) return NextResponse.json({ error: membersRes.error.message }, { status: 400 });
 
   const members = (membersRes.data ?? []) as { role: string | null }[];
-  const roles = (rolesRes.data ?? []) as { id: string; name: string }[];
+  const roles = (rolesRes.data ?? []) as { id: string; name: string; created_at: string; created_by: string | null }[];
 
   const counts: Record<string, number> = {};
   for (const m of members) {
     if (m.role) counts[m.role] = (counts[m.role] ?? 0) + 1;
   }
 
-  const data = roles.map((r) => ({ ...r, member_count: counts[r.name] ?? 0 }));
+  const data = roles.map((r) => ({ ...r, member_count: counts[r.name] ?? 0, created_at: r.created_at, created_by: r.created_by }));
 
   return NextResponse.json({ data });
 }
@@ -39,8 +39,10 @@ export async function POST(request: NextRequest) {
 
   if (!name) return NextResponse.json({ error: "Role name is required." }, { status: 400 });
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from("roles").insert({ name });
+  const { error } = await (supabase as any).from("roles").insert({ name, created_by: user?.email ?? null });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ ok: true });

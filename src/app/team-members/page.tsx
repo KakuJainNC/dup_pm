@@ -10,6 +10,8 @@ type TeamMember = {
   full_name: string;
   email: string | null;
   role: string | null;
+  created_at: string;
+  created_by: string | null;
 };
 
 const DIAL_CODES = [
@@ -58,6 +60,7 @@ export default function TeamMembersPage() {
   const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const [showToast, setShowToast] = useState(false);
+  const [detailMember, setDetailMember] = useState<TeamMember | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -183,7 +186,7 @@ export default function TeamMembersPage() {
                   {filtered.map((m, i) => {
                     const img = m.email ? imageMap[m.email] : null;
                     return (
-                      <tr key={m.id} className={`border-b border-[#c9d9cc] last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-[#f9fcfa]"}`}>
+                      <tr key={m.id} onClick={() => setDetailMember(m)} className={`cursor-pointer border-b border-[#c9d9cc] last:border-0 hover:bg-[#eaf3ec] transition-colors ${i % 2 === 0 ? "bg-white" : "bg-[#f9fcfa]"}`}>
                         <td className="px-4 py-3">
                           <img
                             src={img ?? "/default-user.jpg"}
@@ -296,6 +299,39 @@ export default function TeamMembersPage() {
                 Add Member
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {detailMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDetailMember(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#355e3b]">Entry Details</h2>
+              <button onClick={() => setDetailMember(null)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <img
+                  src={detailMember.email ? (imageMap[detailMember.email] ?? "/default-user.jpg") : "/default-user.jpg"}
+                  alt={detailMember.full_name}
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+                <div>
+                  <p className="font-semibold text-[#355e3b]">{detailMember.full_name}</p>
+                  <p className="text-xs text-black/60">{detailMember.email ?? "No email"}</p>
+                </div>
+              </div>
+              <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added by</span>
+                  <span className="font-medium">{detailMember.created_by ?? "Unknown"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added on</span>
+                  <span className="font-medium">{new Date(detailMember.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

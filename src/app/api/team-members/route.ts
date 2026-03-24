@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("team_members")
-    .select("id, full_name, email, role")
+    .select("id, full_name, email, role, created_at, created_by")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -41,12 +41,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "full_name is required." }, { status: 400 });
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { error } = await supabase.from("team_members").insert({
     full_name: fullName,
     email: email || null,
     dial_code: dialCode,
     phone,
     role,
+    created_by: user?.email ?? null,
   });
 
   if (error) {

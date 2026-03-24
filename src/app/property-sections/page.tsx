@@ -8,6 +8,8 @@ import { Toast } from "@/components/toast";
 type PropertySection = {
   id: string;
   section_name: string;
+  created_at: string;
+  created_by: string | null;
 };
 
 export default function PropertySectionsPage() {
@@ -19,6 +21,7 @@ export default function PropertySectionsPage() {
   const [sectionName, setSectionName] = useState("");
   const [error, setError] = useState("");
   const [showToast, setShowToast] = useState(false);
+  const [detailSection, setDetailSection] = useState<PropertySection | null>(null);
 
   const getAuthHeader = useCallback(async () => {
     if (!supabase) return null;
@@ -91,7 +94,7 @@ export default function PropertySectionsPage() {
           ) : (
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {filtered.map((s) => (
-                <div key={s.id} className="flex flex-col items-center justify-center rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-6 text-center shadow-sm hover:shadow-md transition-shadow">
+                <div key={s.id} onClick={() => setDetailSection(s)} className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-6 text-center shadow-sm hover:shadow-md transition-shadow">
                   <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#355e3b]/10 text-[#355e3b]">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
@@ -125,6 +128,29 @@ export default function PropertySectionsPage() {
                 Add Section
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {detailSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDetailSection(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#355e3b]">Entry Details</h2>
+              <button onClick={() => setDetailSection(null)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+            </div>
+            <div className="mt-4 space-y-3">
+              <p className="font-semibold text-[#355e3b]">{detailSection.section_name}</p>
+              <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added by</span>
+                  <span className="font-medium">{detailSection.created_by ?? "Unknown"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added on</span>
+                  <span className="font-medium">{new Date(detailSection.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

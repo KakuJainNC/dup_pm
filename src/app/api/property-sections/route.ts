@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("property_sections")
-    .select("id, section_name")
+    .select("id, section_name, created_at, created_by")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -37,8 +37,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "section_name is required." }, { status: 400 });
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { error } = await supabase.from("property_sections").insert({
     section_name: sectionName,
+    created_by: user?.email ?? null,
   });
 
   if (error) {

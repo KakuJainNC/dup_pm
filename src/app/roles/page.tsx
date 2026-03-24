@@ -10,6 +10,8 @@ type Role = {
   id: string;
   name: string;
   member_count: number;
+  created_at: string;
+  created_by: string | null;
 };
 
 export default function RolesPage() {
@@ -21,6 +23,7 @@ export default function RolesPage() {
   const [roleName, setRoleName] = useState("");
   const [error, setError] = useState("");
   const [showToast, setShowToast] = useState(false);
+  const [detailRole, setDetailRole] = useState<Role | null>(null);
 
   const getAuthHeader = useCallback(async () => {
     if (!supabase) return null;
@@ -93,7 +96,7 @@ export default function RolesPage() {
           ) : (
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {filtered.map((r) => (
-                <div key={r.id} className="flex flex-col items-center justify-center rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-6 text-center shadow-sm hover:shadow-md transition-shadow">
+                <div key={r.id} onClick={() => setDetailRole(r)} className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-6 text-center shadow-sm hover:shadow-md transition-shadow">
                   <ShieldCheck size={32} className="mb-2 text-[#355e3b]" />
                   <p className="text-sm font-semibold text-[#355e3b] capitalize">{r.name.replace(/_/g, " ")}</p>
                   <span className="mt-2 rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-medium text-[#355e3b]">
@@ -125,6 +128,29 @@ export default function RolesPage() {
                 Add Role
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {detailRole && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDetailRole(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#355e3b]">Entry Details</h2>
+              <button onClick={() => setDetailRole(null)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+            </div>
+            <div className="mt-4 space-y-3">
+              <p className="font-semibold capitalize text-[#355e3b]">{detailRole.name.replace(/_/g, " ")}</p>
+              <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added by</span>
+                  <span className="font-medium">{detailRole.created_by ?? "Unknown"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added on</span>
+                  <span className="font-medium">{new Date(detailRole.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

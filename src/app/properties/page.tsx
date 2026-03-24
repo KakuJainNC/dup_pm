@@ -9,6 +9,8 @@ type Property = {
   id: string;
   name: string;
   address: string | null;
+  created_at: string;
+  created_by: string | null;
   property_sections?: { section_name: string } | null;
 };
 
@@ -29,6 +31,7 @@ export default function PropertiesPage() {
   const [propSectionId, setPropSectionId] = useState("");
   const [error, setError] = useState("");
   const [showToast, setShowToast] = useState(false);
+  const [detailProperty, setDetailProperty] = useState<Property | null>(null);
 
   const getAuthHeader = useCallback(async () => {
     if (!supabase) return null;
@@ -110,7 +113,7 @@ export default function PropertiesPage() {
           ) : (
             <ul className="mt-4 space-y-2">
               {filtered.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3">
+                <li key={p.id} onClick={() => setDetailProperty(p)} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3 hover:bg-[#eaf3ec] transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#355e3b" viewBox="0 0 256 256" className="shrink-0">
                     <path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z" />
                   </svg>
@@ -164,6 +167,29 @@ export default function PropertiesPage() {
                 Add Property
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {detailProperty && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDetailProperty(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#355e3b]">Entry Details</h2>
+              <button onClick={() => setDetailProperty(null)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+            </div>
+            <div className="mt-4 space-y-3">
+              <p className="font-semibold text-[#355e3b]">{detailProperty.name}</p>
+              <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added by</span>
+                  <span className="font-medium">{detailProperty.created_by ?? "Unknown"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added on</span>
+                  <span className="font-medium">{new Date(detailProperty.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
