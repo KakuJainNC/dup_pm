@@ -5,33 +5,53 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
 
+type PropertySection = {
+  id: string;
+  section_name: string;
+  created_at: string;
+  created_by: string | null;
+};
+
 type Property = {
   id: string;
   name: string;
   address: string | null;
+  property_section_id: string;
   created_at: string;
   created_by: string | null;
   property_sections?: { section_name: string } | null;
 };
 
-type PropertySection = {
-  id: string;
-  section_name: string;
-};
+type Tab = "sections" | "properties";
 
 export default function PropertiesPage() {
   const [mounted, setMounted] = useState(false);
   const [supabase] = useState(() => getSupabaseBrowserClient());
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [activeTab, setActiveTab] = useState<Tab>("sections");
+
   const [sections, setSections] = useState<PropertySection[]>([]);
-  const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
+  const [properties, setProperties] = useState<Property[]>([]);
+
+  const [sectionSearch, setSectionSearch] = useState("");
+  const [propertySearch, setPropertySearch] = useState("");
+
+  // Section form
+  const [showSectionModal, setShowSectionModal] = useState(false);
+  const [sectionName, setSectionName] = useState("");
+  const [sectionError, setSectionError] = useState("");
+
+  // Property form
+  const [showPropertyModal, setShowPropertyModal] = useState(false);
   const [propName, setPropName] = useState("");
   const [propAddress, setPropAddress] = useState("");
   const [propSectionId, setPropSectionId] = useState("");
-  const [error, setError] = useState("");
-  const [showToast, setShowToast] = useState(false);
+  const [propError, setPropError] = useState("");
+
+  // Detail modals
+  const [detailSection, setDetailSection] = useState<PropertySection | null>(null);
   const [detailProperty, setDetailProperty] = useState<Property | null>(null);
+
+  const [showToast, setShowToast] = useState(false);
 
   const getAuthHeader = useCallback(async () => {
     if (!supabase) return null;
@@ -41,14 +61,14 @@ export default function PropertiesPage() {
   }, [supabase]);
 
   const fetchData = useCallback(async () => {
-    const [propRes, secRes] = await Promise.all([
-      fetch("/api/properties"),
+    const [secRes, propRes] = await Promise.all([
       fetch("/api/property-sections"),
+      fetch("/api/properties"),
     ]);
-    const propPayload = await propRes.json() as { data?: Property[] };
     const secPayload = await secRes.json() as { data?: PropertySection[] };
+    const propPayload = await propRes.json() as { data?: Property[] };
+    setSections((secPayload.data ?? []).sort((a, b) => a.section_name.localeCompare(b.section_name)));
     setProperties((propPayload.data ?? []).sort((a, b) => a.name.localeCompare(b.name)));
-    setSections(secPayload.data ?? []);
   }, []);
 
   useEffect(() => {
@@ -56,31 +76,60 @@ export default function PropertiesPage() {
     void fetchData();
   }, [fetchData]);
 
+  const addSection = async (e: FormEvent) => {
+    e.preventDefault();
+    setSectionError("");
+    const authHeader = await getAuthHeader();
+    if (!authHeader) { setSectionError("You must be signed in."); return; }
+    const res = await fetch("/api/property-sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      body: JSON.stringify({ section_name: sectionName }),
+    });
+    const payload = await res.json() as { error?: string };
+    if (!res.ok) { setSectionError(payload.error ?? "Failed."); return; }
+    setSectionName("");
+    setShowSectionModal(false);
+    await fetchData();
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   const addProperty = async (e: FormEvent) => {
     e.preventDefault();
-    setError("");
+    setPropError("");
     const authHeader = await getAuthHeader();
-    if (!authHeader) { setError("You must be signed in to add properties."); return; }
+    if (!authHeader) { setPropError("You must be signed in."); return; }
     const res = await fetch("/api/properties", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
       body: JSON.stringify({ name: propName, address: propAddress || null, property_section_id: propSectionId }),
     });
     const payload = await res.json() as { error?: string };
-    if (!res.ok) { setError(payload.error ?? "Failed."); return; }
+    if (!res.ok) { setPropError(payload.error ?? "Failed."); return; }
     setPropName("");
     setPropAddress("");
     setPropSectionId("");
-    setShowModal(false);
+    setShowPropertyModal(false);
     await fetchData();
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  const filtered = properties.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.address ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (p.property_sections?.section_name ?? "").toLowerCase().includes(search.toLowerCase())
+  // Property count per section
+  const propertyCounts = properties.reduce<Record<string, number>>((acc, p) => {
+    acc[p.property_section_id] = (acc[p.property_section_id] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const filteredSections = sections.filter((s) =>
+    s.section_name.toLowerCase().includes(sectionSearch.toLowerCase())
+  );
+
+  const filteredProperties = properties.filter((p) =>
+    p.name.toLowerCase().includes(propertySearch.toLowerCase()) ||
+    (p.address ?? "").toLowerCase().includes(propertySearch.toLowerCase()) ||
+    (p.property_sections?.section_name ?? "").toLowerCase().includes(propertySearch.toLowerCase())
   );
 
   if (!mounted) return null;
@@ -88,54 +137,161 @@ export default function PropertiesPage() {
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
       <PageBand title="Properties" />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10 sm:px-10">
+      <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-10 sm:px-10">
         <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-[#355e3b]">Properties</h1>
-            <div className="flex items-center gap-2">
-              <input
-                className="w-36 rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Search properties"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+
+          {/* Tabs */}
+          <div className="flex gap-1 rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] p-1 w-fit mb-6">
+            {(["sections", "properties"] as Tab[]).map((tab) => (
               <button
-                onClick={() => { setError(""); setShowModal(true); }}
-                className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors"
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`rounded-lg px-5 py-2 text-sm font-medium capitalize transition-colors ${
+                  activeTab === tab
+                    ? "bg-[#355e3b] text-white shadow-sm"
+                    : "text-black hover:text-[#355e3b]"
+                }`}
               >
-                + Add
+                {tab}
               </button>
-            </div>
+            ))}
           </div>
 
-          {filtered.length === 0 ? (
-            <p className="mt-4 text-sm text-black">No properties found.</p>
-          ) : (
-            <ul className="mt-4 space-y-2">
-              {filtered.map((p) => (
-                <li key={p.id} onClick={() => setDetailProperty(p)} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3 hover:bg-[#eaf3ec] transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#355e3b" viewBox="0 0 256 256" className="shrink-0">
-                    <path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium">{p.name}</p>
-                    <p className="text-xs text-black">
-                      {[p.property_sections?.section_name, p.address].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          {/* ── Sections tab ── */}
+          {activeTab === "sections" && (
+            <>
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-[#355e3b]">Sections</h1>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="w-36 rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                    placeholder="Search sections"
+                    value={sectionSearch}
+                    onChange={(e) => setSectionSearch(e.target.value)}
+                  />
+                  <button
+                    onClick={() => { setSectionError(""); setShowSectionModal(true); }}
+                    className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors"
+                  >
+                    + Add
+                  </button>
+                </div>
+              </div>
+
+              {filteredSections.length === 0 ? (
+                <p className="mt-4 text-sm text-black">No sections found.</p>
+              ) : (
+                <div className="mt-4 overflow-hidden rounded-xl border border-[#c9d9cc]">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[#c9d9cc] bg-[#f3f8f4]">
+                        <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Section Name</th>
+                        <th className="px-4 py-3 text-right font-semibold text-[#355e3b]">Properties</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredSections.map((s, i) => (
+                        <tr
+                          key={s.id}
+                          onClick={() => setDetailSection(s)}
+                          className={`cursor-pointer border-b border-[#c9d9cc] last:border-0 hover:bg-[#eaf3ec] transition-colors ${i % 2 === 0 ? "bg-white" : "bg-[#f9fcfa]"}`}
+                        >
+                          <td className="px-4 py-3 font-medium">{s.section_name}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-medium text-[#355e3b]">
+                              {propertyCounts[s.id] ?? 0}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Properties tab ── */}
+          {activeTab === "properties" && (
+            <>
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-[#355e3b]">Properties</h1>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="w-36 rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                    placeholder="Search properties"
+                    value={propertySearch}
+                    onChange={(e) => setPropertySearch(e.target.value)}
+                  />
+                  <button
+                    onClick={() => { setPropError(""); setShowPropertyModal(true); }}
+                    className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors"
+                  >
+                    + Add
+                  </button>
+                </div>
+              </div>
+
+              {filteredProperties.length === 0 ? (
+                <p className="mt-4 text-sm text-black">No properties found.</p>
+              ) : (
+                <ul className="mt-4 space-y-2">
+                  {filteredProperties.map((p) => (
+                    <li
+                      key={p.id}
+                      onClick={() => setDetailProperty(p)}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3 hover:bg-[#eaf3ec] transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#355e3b" viewBox="0 0 256 256" className="shrink-0">
+                        <path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium">{p.name}</p>
+                        <p className="text-xs text-black/60">
+                          {[p.property_sections?.section_name, p.address].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </section>
       </main>
 
-      {showModal && (
+      {/* Add Section modal */}
+      {showSectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#355e3b]">Add Section</h2>
+              <button onClick={() => setShowSectionModal(false)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+            </div>
+            <form onSubmit={addSection} className="mt-4 space-y-3">
+              <input
+                required
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                placeholder="Section name"
+                value={sectionName}
+                onChange={(e) => setSectionName(e.target.value)}
+              />
+              {sectionError && <p className="text-xs text-red-600">{sectionError}</p>}
+              <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
+                Add Section
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Property modal */}
+      {showPropertyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Add Property</h2>
-              <button onClick={() => setShowModal(false)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+              <button onClick={() => setShowPropertyModal(false)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={addProperty} className="mt-4 space-y-3">
               <input
@@ -157,12 +313,12 @@ export default function PropertiesPage() {
                 value={propSectionId}
                 onChange={(e) => setPropSectionId(e.target.value)}
               >
-                <option value="">Select property section</option>
+                <option value="">Select section</option>
                 {sections.map((s) => (
                   <option key={s.id} value={s.id}>{s.section_name}</option>
                 ))}
               </select>
-              {error && <p className="text-xs text-red-600">{error}</p>}
+              {propError && <p className="text-xs text-red-600">{propError}</p>}
               <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
                 Add Property
               </button>
@@ -170,6 +326,33 @@ export default function PropertiesPage() {
           </div>
         </div>
       )}
+
+      {/* Section detail modal */}
+      {detailSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDetailSection(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#355e3b]">Entry Details</h2>
+              <button onClick={() => setDetailSection(null)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+            </div>
+            <div className="mt-4 space-y-3">
+              <p className="font-semibold text-[#355e3b]">{detailSection.section_name}</p>
+              <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added by</span>
+                  <span className="font-medium">{detailSection.created_by ?? "Unknown"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added on</span>
+                  <span className="font-medium">{new Date(detailSection.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Property detail modal */}
       {detailProperty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDetailProperty(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
@@ -193,6 +376,7 @@ export default function PropertiesPage() {
           </div>
         </div>
       )}
+
       {showToast && <Toast message="Done" />}
     </div>
   );
