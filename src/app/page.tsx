@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 type DashboardCounts = {
   teamMembers: number;
   properties: number;
-  sections: number;
   assignments: number;
 };
 
@@ -23,14 +22,13 @@ async function getDashboardCounts() {
     };
   }
 
-  const [teamRes, propertyRes, sectionRes, assignmentRes] = await Promise.all([
+  const [teamRes, propertyRes, assignmentRes] = await Promise.all([
     supabase.from("team_members").select("*", { count: "exact", head: true }),
     supabase.from("properties").select("*", { count: "exact", head: true }),
-    supabase.from("property_sections").select("*", { count: "exact", head: true }),
     supabase.from("property_assignments").select("*", { count: "exact", head: true }),
   ]);
 
-  const errors = [teamRes.error, propertyRes.error, sectionRes.error, assignmentRes.error].filter(Boolean);
+  const errors = [teamRes.error, propertyRes.error, assignmentRes.error].filter(Boolean);
   if (errors.length > 0) {
     return {
       counts: null,
@@ -41,7 +39,6 @@ async function getDashboardCounts() {
   const counts: DashboardCounts = {
     teamMembers: teamRes.count ?? 0,
     properties: propertyRes.count ?? 0,
-    sections: sectionRes.count ?? 0,
     assignments: assignmentRes.count ?? 0,
   };
 
@@ -49,16 +46,6 @@ async function getDashboardCounts() {
 }
 
 const navItems = [
-  {
-    label: "Sections",
-    href: "/property-sections",
-    description: "Organise properties into sections",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-      </svg>
-    ),
-  },
   {
     label: "Properties",
     href: "/properties",
@@ -110,7 +97,7 @@ export default async function Home() {
             {error}
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
               <p className="text-3xl font-bold text-[#355e3b]">{counts?.teamMembers}</p>
               <p className="mt-1 text-sm text-black">Team Members</p>
@@ -118,10 +105,6 @@ export default async function Home() {
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
               <p className="text-3xl font-bold text-[#355e3b]">{counts?.properties}</p>
               <p className="mt-1 text-sm text-black">Properties</p>
-            </div>
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-              <p className="text-3xl font-bold text-[#355e3b]">{counts?.sections}</p>
-              <p className="mt-1 text-sm text-black">Sections</p>
             </div>
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
               <p className="text-3xl font-bold text-[#355e3b]">{counts?.assignments}</p>
