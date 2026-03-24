@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
     ((profilesRes.data ?? []) as { id: string; email: string; app_role: string }[]).map((p) => [p.id, p])
   );
 
-  const data = (membersRes.data ?? []).map((m) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = (membersRes.data ?? [] as any[]).map((m: any) => ({
     ...m,
     profile: m.user_id ? (profileMap[m.user_id] ?? null) : null,
   }));
