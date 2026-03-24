@@ -7,14 +7,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
   }
 
-  const { data, error } = await supabase
-    .from("team_members")
-    .select("id, full_name, email, role, created_at, created_by")
-    .order("created_at", { ascending: false });
+  const [membersRes, profilesRes] = await Promise.all([
+    supabase
+      .from("team_members")
+      .select("id, full_name, email, role, created_at, created_by, user_id")
+      .order("created_at", { ascending: false }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from("profiles").select("id, email, app_role"),
+  ]);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (membersRes.error) {
+    return NextResponse.json({ error: membersRes.error.message }, { status: 400 });
   }
+
+  const profileMap = Object.fromEntries(
+    ((profilesRes.data ?? []) as { id: string; email: string; app_role: string }[]).map((p) => [p.id, p])
+  );
+
+  const data = (membersRes.data ?? []).map((m) => ({
+    ...m,
+    profile: m.user_id ? (profileMap[m.user_id] ?? null) : null,
+  }));
 
   return NextResponse.json({ data });
 }

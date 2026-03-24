@@ -5,6 +5,12 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
 
+type Profile = {
+  id: string;
+  email: string;
+  app_role: "admin" | "manager" | "viewer";
+};
+
 type TeamMember = {
   id: string;
   full_name: string;
@@ -12,6 +18,8 @@ type TeamMember = {
   role: string | null;
   created_at: string;
   created_by: string | null;
+  user_id: string | null;
+  profile: Profile | null;
 };
 
 const DIAL_CODES = [
@@ -60,7 +68,9 @@ export default function TeamMembersPage() {
   const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("Done");
   const [detailMember, setDetailMember] = useState<TeamMember | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -135,8 +145,32 @@ export default function TeamMembersPage() {
     resetForm();
     setShowModal(false);
     await fetchMembers();
+    setToastMessage("Done");
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
+  };
+
+  const handleLinkToggle = async (member: TeamMember) => {
+    const authHeader = await getAuthHeader();
+    if (!authHeader) return;
+    setLinkingId(member.id);
+    const action = member.user_id ? "unlink" : "link";
+    const res = await fetch(`/api/team-members/${member.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      body: JSON.stringify({ action }),
+    });
+    const payload = await res.json() as { error?: string };
+    setLinkingId(null);
+    if (!res.ok) {
+      setToastMessage(payload.error ?? "Failed.");
+    } else {
+      setToastMessage(action === "link" ? "Account linked" : "Account unlinked");
+      await fetchMembers();
+      if (detailMember?.id === member.id) setDetailMember(null);
+    }
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   const filtered = members.filter((m) =>
@@ -180,6 +214,7 @@ export default function TeamMembersPage() {
                     <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Full Name</th>
                     <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Email</th>
                     <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Role</th>
+                    <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">App Access</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,6 +237,30 @@ export default function TeamMembersPage() {
                               {m.role.replace(/_/g, " ")}
                             </span>
                           ) : "—"}
+                        </td>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          {m.profile ? (
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 capitalize">
+                                {m.profile.app_role}
+                              </span>
+                              <button
+                                onClick={() => handleLinkToggle(m)}
+                                disabled={linkingId === m.id}
+                                className="text-xs text-black/40 hover:text-red-500 transition-colors disabled:opacity-40"
+                              >
+                                Unlink
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleLinkToggle(m)}
+                              disabled={linkingId === m.id || !m.email}
+                              className="rounded-md border border-[#b8cbbd] px-2.5 py-1 text-xs font-medium text-[#355e3b] hover:bg-[#355e3b] hover:text-white transition-colors disabled:opacity-40"
+                            >
+                              {linkingId === m.id ? "Linking…" : "Link Account"}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -323,6 +382,16 @@ export default function TeamMembersPage() {
               </div>
               <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3 space-y-2 text-sm">
                 <div className="flex justify-between">
+                  <span className="text-black/60">App access</span>
+                  {detailMember.profile ? (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 capitalize">
+                      {detailMember.profile.app_role}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-black/40">No account linked</span>
+                  )}
+                </div>
+                <div className="flex justify-between">
                   <span className="text-black/60">Added by</span>
                   <span className="font-medium">{detailMember.created_by ?? "Unknown"}</span>
                 </div>
@@ -335,7 +404,7 @@ export default function TeamMembersPage() {
           </div>
         </div>
       )}
-      {showToast && <Toast message="Done" />}
+      {showToast && <Toast message={toastMessage} />}
     </div>
   );
 }
