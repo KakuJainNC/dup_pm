@@ -7,6 +7,8 @@ import { ArrowUpRight, ShieldCheck } from "@phosphor-icons/react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { NAV_ITEMS, type NavItemKey } from "@/lib/nav-config";
 
+const STORAGE_KEY = "pm_member_images";
+
 const NAV_ICONS: Record<NavItemKey, React.ReactNode> = {
   home: <ArrowUpRight size={20} />,
   properties: (
@@ -30,16 +32,39 @@ const NAV_ICONS: Record<NavItemKey, React.ReactNode> = {
 export function SideNav() {
   const pathname = usePathname();
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userImage, setUserImage] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+
+    const loadProfile = async (email: string | undefined) => {
+      if (!email) return;
+      setUserEmail(email);
+      // Fetch full_name from profiles
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("full_name")
+        .eq("email", email)
+        .single();
+      setUserName(data?.full_name ?? null);
+      // Load image from localStorage
+      try {
+        const map = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<string, string>;
+        setUserImage(map[email] ?? null);
+      } catch { /* ignore */ }
+    };
+
     supabase.auth.getSession().then(({ data }) => {
-      setUserEmail(data.session?.user?.email ?? null);
+      void loadProfile(data.session?.user?.email);
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUserEmail(session?.user?.email ?? null);
+      void loadProfile(session?.user?.email);
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -73,16 +98,32 @@ export function SideNav() {
         })}
       </nav>
 
-      <div className="border-t border-[#c9d9cc] px-4 py-4">
+      <div className="border-t border-[#c9d9cc] px-2 py-3">
         {userEmail ? (
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#355e3b] text-xs font-bold text-white">
-              {userEmail[0].toUpperCase()}
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-[#e8f0ea] transition-colors group"
+          >
+            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#c9d9cc]">
+              {userImage ? (
+                <img src={userImage} alt={userName ?? userEmail} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-[#355e3b] text-xs font-bold text-white">
+                  {(userName ?? userEmail)[0].toUpperCase()}
+                </div>
+              )}
             </div>
-            <p className="truncate text-xs text-black">{userEmail}</p>
-          </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-black group-hover:text-[#355e3b]">
+                {userName ?? userEmail}
+              </p>
+              {userName && (
+                <p className="truncate text-[10px] text-black/40">{userEmail}</p>
+              )}
+            </div>
+          </Link>
         ) : (
-          <p className="text-xs text-black/50">Not signed in</p>
+          <p className="px-2 text-xs text-black/50">Not signed in</p>
         )}
       </div>
     </aside>
