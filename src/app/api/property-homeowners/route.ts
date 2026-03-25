@@ -9,9 +9,25 @@ export async function GET(request: NextRequest) {
 
   const propertyId = request.nextUrl.searchParams.get("property_id");
   const homeownerId = request.nextUrl.searchParams.get("homeowner_id");
+  const all = request.nextUrl.searchParams.get("all");
 
-  if (!propertyId && !homeownerId) {
+  if (!propertyId && !homeownerId && all !== "true") {
     return NextResponse.json({ error: "property_id or homeowner_id is required." }, { status: 400 });
+  }
+
+  if (all === "true") {
+    const { data, error } = await supabase
+      .from("property_homeowners")
+      .select("id, homeowner_id, property_id, properties(name)");
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const flattened = (data ?? []).map((row: any) => ({
+      id: row.id,
+      homeowner_id: row.homeowner_id,
+      property_id: row.property_id,
+      name: row.properties?.name ?? null,
+    }));
+    return NextResponse.json({ data: flattened });
   }
 
   if (propertyId) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { DetailBand } from "@/components/detail-band";
@@ -51,6 +51,35 @@ const DIAL_CODES = [
   { code: "+86",  label: "🇨🇳 +86 | CHN" },
 ];
 
+const STORAGE_KEY_HO = "pm_homeowner_images";
+
+function getHOImageMap(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY_HO) ?? "{}"); } catch { return {}; }
+}
+
+function saveHOImage(email: string, dataUrl: string) {
+  const map = getHOImageMap();
+  map[email] = dataUrl;
+  localStorage.setItem(STORAGE_KEY_HO, JSON.stringify(map));
+}
+
+const TAG_COLORS = [
+  "bg-blue-100 text-blue-700",
+  "bg-purple-100 text-purple-700",
+  "bg-orange-100 text-orange-700",
+  "bg-teal-100 text-teal-700",
+  "bg-rose-100 text-rose-700",
+  "bg-indigo-100 text-indigo-700",
+  "bg-amber-100 text-amber-700",
+  "bg-cyan-100 text-cyan-700",
+];
+
+function tagColor(id: string): string {
+  let hash = 0;
+  for (const c of id) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
+  return TAG_COLORS[hash % TAG_COLORS.length];
+}
+
 export default function HomeownersPage() {
   const [mounted, setMounted] = useState(false);
   const [supabase] = useState(() => getSupabaseBrowserClient());
@@ -90,6 +119,18 @@ export default function HomeownersPage() {
   // Toast
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("Done");
+
+  // Images
+  const [imageMap, setImageMap] = useState<Record<string, string>>({});
+  const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
+  const [addImageDataUrl, setAddImageDataUrl] = useState<string | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [editImageDataUrl, setEditImageDataUrl] = useState<string | null>(null);
+  const addFileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Properties map for list view
+  const [homeownerPropertiesMap, setHomeownerPropertiesMap] = useState<Record<string, { id: string; name: string }[]>>({});
 
   const getAuthHeader = useCallback(async () => {
     if (!supabase) return null;
@@ -139,12 +180,27 @@ export default function HomeownersPage() {
     setLoadingProperties(false);
   }, [getAuthHeader]);
 
+  const fetchAllAssignments = useCallback(async () => {
+    const authHeader = await getAuthHeader();
+    const headers: HeadersInit = authHeader ? { Authorization: authHeader } : {};
+    const res = await fetch("/api/property-homeowners?all=true", { headers });
+    const payload = await res.json() as { data?: { id: string; homeowner_id: string; property_id: string; name: string | null }[] };
+    const map: Record<string, { id: string; name: string }[]> = {};
+    for (const a of (payload.data ?? [])) {
+      if (!map[a.homeowner_id]) map[a.homeowner_id] = [];
+      map[a.homeowner_id].push({ id: a.property_id, name: a.name ?? "" });
+    }
+    setHomeownerPropertiesMap(map);
+  }, [getAuthHeader]);
+
   useEffect(() => {
     setMounted(true);
+    setImageMap(getHOImageMap());
     void fetchHomeowners();
     void fetchProfile();
     void fetchAllProperties();
-  }, [fetchHomeowners, fetchProfile, fetchAllProperties]);
+    void fetchAllAssignments();
+  }, [fetchHomeowners, fetchProfile, fetchAllProperties, fetchAllAssignments]);
 
   const resetAddForm = () => {
     setAddName("");
@@ -154,6 +210,9 @@ export default function HomeownersPage() {
     setAddNotes("");
     setAddSelectedPropertyIds([]);
     setAddError("");
+    setAddImagePreview(null);
+    setAddImageDataUrl(null);
+    if (addFileInputRef.current) addFileInputRef.current.value = "";
   };
 
   const resetEditForm = () => {
@@ -164,6 +223,9 @@ export default function HomeownersPage() {
     setEditNotes("");
     setEditSelectedPropertyIds([]);
     setEditError("");
+    setEditImagePreview(null);
+    setEditImageDataUrl(null);
+    if (editFileInputRef.current) editFileInputRef.current.value = "";
   };
 
   const toggleAddProperty = (id: string) => {
@@ -176,6 +238,30 @@ export default function HomeownersPage() {
     setEditSelectedPropertyIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  };
+
+  const handleAddImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setAddImagePreview(result);
+      setAddImageDataUrl(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleEditImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setEditImagePreview(result);
+      setEditImageDataUrl(result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAddSubmit = async (e: FormEvent) => {
@@ -217,9 +303,16 @@ export default function HomeownersPage() {
       );
     }
 
+    // 4. Save image
+    if (addImageDataUrl && addEmail && newHomeowner) {
+      saveHOImage(addEmail, addImageDataUrl);
+      setImageMap(getHOImageMap());
+    }
+
     resetAddForm();
     setShowAddModal(false);
     await fetchHomeowners();
+    await fetchAllAssignments();
     showSuccess("Homeowner added");
   };
 
@@ -230,6 +323,9 @@ export default function HomeownersPage() {
     setEditPhone(hw.phone ?? "");
     setEditNotes(hw.notes ?? "");
     setEditError("");
+    const img = hw.email ? (getHOImageMap()[hw.email] ?? null) : null;
+    setEditImagePreview(img);
+    setEditImageDataUrl(img);
     // Pre-populate selected properties from current assignments
     const authHeader = await getAuthHeader();
     const headers: HeadersInit = authHeader ? { Authorization: authHeader } : {};
@@ -261,7 +357,13 @@ export default function HomeownersPage() {
     const payload = await res.json() as { error?: string };
     if (!res.ok) { setEditError(payload.error ?? "Failed."); return; }
 
-    // 2. Diff property assignments
+    // 2. Save image
+    if (editImageDataUrl && editEmail) {
+      saveHOImage(editEmail, editImageDataUrl);
+      setImageMap(getHOImageMap());
+    }
+
+    // 3. Diff property assignments
     const currentAssigned = assignedProperties.map((ap) => ({ junctionId: ap.id, propertyId: ap.property_id }));
     const currentIds = currentAssigned.map((a) => a.propertyId);
     const toAdd = editSelectedPropertyIds.filter((id) => !currentIds.includes(id));
@@ -290,6 +392,7 @@ export default function HomeownersPage() {
     );
     await fetchAssignedProperties(selectedHomeowner.id);
     await fetchHomeowners();
+    await fetchAllAssignments();
     showSuccess("Homeowner updated");
   };
 
@@ -309,6 +412,7 @@ export default function HomeownersPage() {
     setSelectedHomeowner(null);
     setAssignedProperties([]);
     await fetchHomeowners();
+    await fetchAllAssignments();
     showSuccess("Homeowner deleted");
   };
 
@@ -379,9 +483,11 @@ export default function HomeownersPage() {
             {/* Title card */}
             <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
               <div className="flex items-start gap-4">
-                <div className="h-14 w-14 shrink-0 rounded-xl bg-[#355e3b] flex items-center justify-center text-white text-2xl font-bold">
-                  {selectedHomeowner.full_name[0].toUpperCase()}
-                </div>
+                <img
+                  src={selectedHomeowner.email ? (imageMap[selectedHomeowner.email] ?? "/default-user.jpg") : "/default-user.jpg"}
+                  alt={selectedHomeowner.full_name}
+                  className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-black/40 uppercase tracking-wide">Homeowner</p>
                   <h2 className="text-xl font-bold text-[#355e3b] mt-0.5">{selectedHomeowner.full_name}</h2>
@@ -470,7 +576,9 @@ export default function HomeownersPage() {
           /* List view */
           <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-[#355e3b]">Homeowners</h1>
+              <h1 className="text-2xl font-bold text-[#355e3b]">
+                Homeowners ({homeowners.length})
+              </h1>
               <div className="flex items-center gap-2">
                 <input
                   className="w-36 rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
@@ -496,25 +604,47 @@ export default function HomeownersPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[#c9d9cc] bg-[#f3f8f4]">
+                      <th className="w-12 px-4 py-3"></th>
                       <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Name</th>
+                      <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Properties</th>
                       <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Email</th>
                       <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Phone</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredHomeowners.map((hw, i) => (
-                      <tr
-                        key={hw.id}
-                        onClick={() => handleSelectHomeowner(hw)}
-                        className={`cursor-pointer border-b border-[#c9d9cc] last:border-0 hover:bg-[#eaf3ec] transition-colors ${i % 2 === 0 ? "bg-white" : "bg-[#f9fcfa]"}`}
-                      >
-                        <td className="px-4 py-3 font-medium">{hw.full_name}</td>
-                        <td className="px-4 py-3 text-black/70">{hw.email ?? "—"}</td>
-                        <td className="px-4 py-3 text-black/70">
-                          {hw.phone ? `${hw.dial_code ?? ""} ${hw.phone}`.trim() : "—"}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredHomeowners.map((hw, i) => {
+                      const img = hw.email ? (imageMap[hw.email] ?? "/default-user.jpg") : "/default-user.jpg";
+                      const props = homeownerPropertiesMap[hw.id] ?? [];
+                      return (
+                        <tr
+                          key={hw.id}
+                          onClick={() => handleSelectHomeowner(hw)}
+                          className={`cursor-pointer border-b border-[#c9d9cc] last:border-0 hover:bg-[#eaf3ec] transition-colors ${i % 2 === 0 ? "bg-white" : "bg-[#f9fcfa]"}`}
+                        >
+                          <td className="px-4 py-3">
+                            <img src={img} alt={hw.full_name} className="h-8 w-8 rounded-full object-cover" />
+                          </td>
+                          <td className="px-4 py-3 font-medium">{hw.full_name}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1">
+                              {props.length === 0 ? (
+                                <span className="text-xs text-black/40">—</span>
+                              ) : (
+                                props.map((p) => (
+                                  <span key={p.id} className={`rounded-full px-2 py-0.5 text-xs font-medium ${tagColor(p.id)}`}>
+                                    {p.name}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-black/70">{hw.email ?? "—"}</td>
+                          <td className="px-4 py-3 text-black/70">
+                            {hw.phone ? `${hw.dial_code ?? ""} ${hw.phone}`.trim() : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -532,6 +662,17 @@ export default function HomeownersPage() {
               <button onClick={() => { resetAddForm(); setShowAddModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={handleAddSubmit} className="mt-4 space-y-4">
+              {/* Image upload */}
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="h-20 w-20 cursor-pointer overflow-hidden rounded-full border-2 border-dashed border-[#b8cbbd] hover:border-[#355e3b] transition-colors"
+                  onClick={() => addFileInputRef.current?.click()}
+                >
+                  <img src={addImagePreview ?? "/default-user.jpg"} alt="Preview" className="h-full w-full object-cover" />
+                </div>
+                <p className="text-xs text-black/60">Click to upload photo (optional)</p>
+                <input ref={addFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAddImageChange} />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-black/70 mb-1">Full Name</label>
                 <input required className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter full name" value={addName} onChange={(e) => setAddName(e.target.value)} />
@@ -570,6 +711,17 @@ export default function HomeownersPage() {
               <button onClick={() => { resetEditForm(); setShowEditModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
+              {/* Image upload */}
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="h-20 w-20 cursor-pointer overflow-hidden rounded-full border-2 border-dashed border-[#b8cbbd] hover:border-[#355e3b] transition-colors"
+                  onClick={() => editFileInputRef.current?.click()}
+                >
+                  <img src={editImagePreview ?? "/default-user.jpg"} alt="Preview" className="h-full w-full object-cover" />
+                </div>
+                <p className="text-xs text-black/60">Click to upload photo (optional)</p>
+                <input ref={editFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleEditImageChange} />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-black/70 mb-1">Full Name</label>
                 <input required className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter full name" value={editName} onChange={(e) => setEditName(e.target.value)} />

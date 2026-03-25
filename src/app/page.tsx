@@ -7,9 +7,10 @@ import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 export const dynamic = "force-dynamic";
 
 type DashboardCounts = {
-  teamMembers: number;
+  homeowners: number;
   properties: number;
-  assignments: number;
+  sections: number;
+  teamMembers: number;
 };
 
 async function getDashboardCounts() {
@@ -23,13 +24,14 @@ async function getDashboardCounts() {
     };
   }
 
-  const [teamRes, propertyRes, assignmentRes] = await Promise.all([
+  const [teamRes, propertyRes, homeownerRes, sectionRes] = await Promise.all([
     supabase.from("team_members").select("*", { count: "exact", head: true }),
     supabase.from("properties").select("*", { count: "exact", head: true }).eq("is_active", true),
-    supabase.from("property_assignments").select("*", { count: "exact", head: true }),
+    supabase.from("homeowners").select("*", { count: "exact", head: true }),
+    supabase.from("property_sections").select("*", { count: "exact", head: true }),
   ]);
 
-  const errors = [teamRes.error, propertyRes.error, assignmentRes.error].filter(Boolean);
+  const errors = [teamRes.error, propertyRes.error, homeownerRes.error, sectionRes.error].filter(Boolean);
   if (errors.length > 0) {
     return {
       counts: null,
@@ -38,9 +40,10 @@ async function getDashboardCounts() {
   }
 
   const counts: DashboardCounts = {
-    teamMembers: teamRes.count ?? 0,
+    homeowners: homeownerRes.count ?? 0,
     properties: propertyRes.count ?? 0,
-    assignments: assignmentRes.count ?? 0,
+    sections: sectionRes.count ?? 0,
+    teamMembers: teamRes.count ?? 0,
   };
 
   return { counts, error: null };
@@ -108,18 +111,22 @@ export default async function Home() {
             {error}
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-4">
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-              <p className="text-3xl font-bold text-[#355e3b]">{counts?.teamMembers}</p>
-              <p className="mt-1 text-sm text-black">Team Members</p>
+              <p className="text-3xl font-bold text-[#355e3b]">{counts?.homeowners}</p>
+              <p className="mt-1 text-sm text-black">Homeowners</p>
             </div>
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
               <p className="text-3xl font-bold text-[#355e3b]">{counts?.properties}</p>
               <p className="mt-1 text-sm text-black">Properties</p>
             </div>
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-              <p className="text-3xl font-bold text-[#355e3b]">{counts?.assignments}</p>
-              <p className="mt-1 text-sm text-black">Assignments</p>
+              <p className="text-3xl font-bold text-[#355e3b]">{counts?.sections}</p>
+              <p className="mt-1 text-sm text-black">Sections</p>
+            </div>
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
+              <p className="text-3xl font-bold text-[#355e3b]">{counts?.teamMembers}</p>
+              <p className="mt-1 text-sm text-black">Team Members</p>
             </div>
           </div>
         )}
