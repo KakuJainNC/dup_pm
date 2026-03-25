@@ -207,6 +207,7 @@ function PropertyDetailContent() {
     }
     setCommentText("");
     await fetchComments();
+    showSuccess("Commented");
   };
 
   if (!mounted || !property) return null;
