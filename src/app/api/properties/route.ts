@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("properties")
-    .select("id, name, address, property_section_id, created_at, created_by, property_sections(id, section_name)")
+    .select("id, name, address, property_section_id, created_at, created_by, is_active, property_sections(id, section_name)")
     .order("created_at", { ascending: false });
 
   if (error) {

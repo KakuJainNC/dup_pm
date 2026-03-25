@@ -13,9 +13,19 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/properties
   }
 
   const { id } = await ctx.params;
-  const body = (await req.json()) as { name?: string; address?: string | null };
-  const name = body.name?.trim();
+  const body = (await req.json()) as { name?: string; address?: string | null; is_active?: boolean };
 
+  // Toggle-only update (is_active without name)
+  if (body.is_active !== undefined && body.name === undefined) {
+    const { error } = await supabase
+      .from("properties")
+      .update({ is_active: body.is_active })
+      .eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true });
+  }
+
+  const name = body.name?.trim();
   if (!name) {
     return NextResponse.json({ error: "name is required." }, { status: 400 });
   }

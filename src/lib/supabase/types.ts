@@ -31,6 +31,7 @@ export type Database = {
           address: string | null;
           property_section_id: string;
           created_at: string;
+          is_active: boolean;
         };
         Insert: {
           id?: string;
@@ -38,6 +39,7 @@ export type Database = {
           address?: string | null;
           property_section_id: string;
           created_at?: string;
+          is_active?: boolean;
         };
         Update: {
           id?: string;
@@ -45,6 +47,7 @@ export type Database = {
           address?: string | null;
           property_section_id?: string;
           created_at?: string;
+          is_active?: boolean;
         };
         Relationships: [
           {

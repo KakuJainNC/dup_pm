@@ -24,7 +24,7 @@ async function getDashboardCounts() {
 
   const [teamRes, propertyRes, assignmentRes] = await Promise.all([
     supabase.from("team_members").select("*", { count: "exact", head: true }),
-    supabase.from("properties").select("*", { count: "exact", head: true }),
+    supabase.from("properties").select("*", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("property_assignments").select("*", { count: "exact", head: true }),
   ]);
 

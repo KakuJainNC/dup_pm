@@ -19,15 +19,18 @@ type Property = {
   property_section_id: string;
   created_at: string;
   created_by: string | null;
+  is_active: boolean;
   property_sections?: { section_name: string } | null;
 };
 
 type Tab = "sections" | "properties";
+type PropertySubTab = "all" | "active" | "deactivated";
 
 export default function PropertiesPage() {
   const [mounted, setMounted] = useState(false);
   const [supabase] = useState(() => getSupabaseBrowserClient());
   const [activeTab, setActiveTab] = useState<Tab>("sections");
+  const [propertySubTab, setPropertySubTab] = useState<PropertySubTab>("all");
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const [sections, setSections] = useState<PropertySection[]>([]);
@@ -294,6 +297,22 @@ export default function PropertiesPage() {
     showSuccess("Property deleted");
   };
 
+  // ── Toggle property active/deactivated ──
+  const togglePropertyActive = async (property: Property) => {
+    const authHeader = await getAuthHeader();
+    if (!authHeader) return;
+    const newValue = !property.is_active;
+    const res = await fetch(`/api/properties/${property.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      body: JSON.stringify({ is_active: newValue }),
+    });
+    if (!res.ok) return;
+    await fetchData();
+    setDetailProperty((prev) => prev?.id === property.id ? { ...prev, is_active: newValue } : prev);
+    showSuccess(newValue ? "Property activated" : "Property deactivated");
+  };
+
   // Property count per section
   const propertyCounts = properties.reduce<Record<string, number>>((acc, p) => {
     acc[p.property_section_id] = (acc[p.property_section_id] ?? 0) + 1;
@@ -304,11 +323,20 @@ export default function PropertiesPage() {
     s.section_name.toLowerCase().includes(sectionSearch.toLowerCase())
   );
 
-  const filteredProperties = properties.filter((p) =>
-    p.name.toLowerCase().includes(propertySearch.toLowerCase()) ||
-    (p.address ?? "").toLowerCase().includes(propertySearch.toLowerCase()) ||
-    (p.property_sections?.section_name ?? "").toLowerCase().includes(propertySearch.toLowerCase())
-  );
+  const activeCount = properties.filter((p) => p.is_active).length;
+  const deactivatedCount = properties.filter((p) => !p.is_active).length;
+
+  const filteredProperties = properties
+    .filter((p) =>
+      p.name.toLowerCase().includes(propertySearch.toLowerCase()) ||
+      (p.address ?? "").toLowerCase().includes(propertySearch.toLowerCase()) ||
+      (p.property_sections?.section_name ?? "").toLowerCase().includes(propertySearch.toLowerCase())
+    )
+    .filter((p) => {
+      if (propertySubTab === "active") return p.is_active;
+      if (propertySubTab === "deactivated") return !p.is_active;
+      return true;
+    });
 
   // Properties in the currently-open section detail
   const sectionDetailProperties = detailSection
@@ -428,6 +456,52 @@ export default function PropertiesPage() {
                 </div>
               </div>
 
+              {/* Property sub-tabs */}
+              <div className="flex gap-1 rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] p-1 w-fit mt-4">
+                {([
+                  {
+                    key: "all" as PropertySubTab,
+                    label: "All",
+                    count: properties.length,
+                    icon: (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M32,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H40A8,8,0,0,1,32,64Zm8,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm0,64H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Z" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    key: "active" as PropertySubTab,
+                    label: "Active",
+                    count: activeCount,
+                    icon: <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500" />,
+                  },
+                  {
+                    key: "deactivated" as PropertySubTab,
+                    label: "Deactivated",
+                    count: deactivatedCount,
+                    icon: <span className="inline-block h-2.5 w-2.5 rounded-full bg-gray-400" />,
+                  },
+                ]).map(({ key, label, count, icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setPropertySubTab(key)}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                      propertySubTab === key
+                        ? "bg-[#355e3b] text-white shadow-sm"
+                        : "text-black hover:text-[#355e3b]"
+                    }`}
+                  >
+                    {icon}
+                    {label}
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                      propertySubTab === key ? "bg-white/20 text-white" : "bg-[#355e3b]/10 text-[#355e3b]"
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
               {filteredProperties.length === 0 ? (
                 <p className="mt-4 text-sm text-black">No properties found.</p>
               ) : (
@@ -443,6 +517,7 @@ export default function PropertiesPage() {
                       }}
                       className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3 hover:bg-[#eaf3ec] transition-colors"
                     >
+                      <span className={`inline-block h-3 w-3 rounded-sm shrink-0 ${p.is_active ? "bg-green-500" : "bg-gray-400"}`} />
                       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#355e3b" viewBox="0 0 256 256" className="shrink-0">
                         <path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z" />
                       </svg>
@@ -654,6 +729,7 @@ export default function PropertiesPage() {
                       key={p.id}
                       className="flex items-center gap-2 rounded-lg border border-[#c9d9cc] bg-[#f9fcfa] px-3 py-2"
                     >
+                      <span className={`inline-block h-2.5 w-2.5 rounded-sm shrink-0 ${p.is_active ? "bg-green-500" : "bg-gray-400"}`} />
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#355e3b" viewBox="0 0 256 256" className="shrink-0">
                         <path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z" />
                       </svg>
@@ -799,6 +875,13 @@ export default function PropertiesPage() {
 
             {/* Meta info */}
             <div className="mt-4 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-3 space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-black/60">Status</span>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block h-3 w-3 rounded-sm ${detailProperty.is_active ? "bg-green-500" : "bg-gray-400"}`} />
+                  <span className="font-medium">{detailProperty.is_active ? "Active" : "Deactivated"}</span>
+                </div>
+              </div>
               {detailProperty.property_sections?.section_name && (
                 <div className="flex justify-between">
                   <span className="text-black/60">Section</span>
@@ -814,6 +897,25 @@ export default function PropertiesPage() {
                 <span className="font-medium">{new Date(detailProperty.created_at).toLocaleString()}</span>
               </div>
             </div>
+
+            {/* Active/Deactivated toggle — admin only */}
+            {isAdmin && !propEditMode && (
+              <div className="mt-3 flex items-center justify-between rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-3 py-2.5">
+                <span className="text-sm font-medium text-black">
+                  {detailProperty.is_active ? "Deactivate property" : "Activate property"}
+                </span>
+                <button
+                  onClick={() => togglePropertyActive(detailProperty)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    detailProperty.is_active ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    detailProperty.is_active ? "translate-x-6" : "translate-x-1"
+                  }`} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
