@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
+import { PencilSimple, Trash } from "@phosphor-icons/react";
 
 type Profile = {
   app_role: "admin" | "manager" | "viewer";
@@ -379,33 +380,41 @@ export default function HomeownersPage() {
             </nav>
 
           <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-            {isAdmin && (
-              <div className="flex justify-end gap-2 mb-4">
-                <button
-                  onClick={() => openEditModal(selectedHomeowner)}
-                  className="rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-xs font-medium text-[#355e3b] hover:bg-[#355e3b] hover:text-white transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-                >
-                  Delete
-                </button>
+            {/* Standard detail header */}
+            <div className="flex items-start gap-4 mb-6">
+              {/* Avatar square */}
+              <div className="h-14 w-14 shrink-0 rounded-xl bg-[#355e3b] flex items-center justify-center text-white text-2xl font-bold">
+                {selectedHomeowner.full_name[0].toUpperCase()}
               </div>
-            )}
+              {/* Title + actions */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-black/40 uppercase tracking-wide">Homeowner</p>
+                <h2 className="text-xl font-bold text-[#355e3b] mt-0.5">{selectedHomeowner.full_name}</h2>
+                {selectedHomeowner.email && (
+                  <p className="mt-0.5 text-sm text-black/60">{selectedHomeowner.email}</p>
+                )}
+                {isAdmin && (
+                  <div className="flex items-center gap-4 mt-3">
+                    <button
+                      onClick={() => openEditModal(selectedHomeowner)}
+                      className="flex items-center gap-1.5 text-sm font-medium text-black/60 hover:text-[#355e3b] transition-colors"
+                    >
+                      <PencilSimple size={16} /> Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="flex items-center gap-1.5 text-sm font-medium text-black/60 hover:text-red-600 transition-colors"
+                    >
+                      <Trash size={16} /> Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               {/* Info card */}
               <div className="flex-1 space-y-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-[#355e3b]">{selectedHomeowner.full_name}</h2>
-                  {selectedHomeowner.email && (
-                    <p className="text-sm text-black/60">{selectedHomeowner.email}</p>
-                  )}
-                </div>
-
                 <div className="rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] p-4 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-black/60">Phone</span>
