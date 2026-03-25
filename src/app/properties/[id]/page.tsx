@@ -87,10 +87,12 @@ function PropertyDetailContent() {
   }, [propertyId, getAuthHeader, fromSectionId]);
 
   const fetchComments = useCallback(async () => {
-    const res = await fetch(`/api/property-comments?property_id=${propertyId}`);
+    const authHeader = await getAuthHeader();
+    const headers: HeadersInit = authHeader ? { Authorization: authHeader } : {};
+    const res = await fetch(`/api/property-comments?property_id=${propertyId}`, { headers });
     const payload = (await res.json()) as { data?: Comment[] };
     setComments(payload.data ?? []);
-  }, [propertyId]);
+  }, [propertyId, getAuthHeader]);
 
   const fetchUserInfo = useCallback(async () => {
     if (!supabase) return;
