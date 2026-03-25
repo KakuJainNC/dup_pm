@@ -34,7 +34,12 @@ type PropertyAssignment = {
   role: Role;
 };
 
-const roles: Role[] = ["gsm", "property_manager", "housekeeping", "maintenance"];
+const roles: Role[] = ["gsm", "housekeeping", "maintenance", "property_manager"];
+
+function formatRole(role: string): string {
+  if (role.toLowerCase() === "gsm") return "GSM";
+  return role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export function PmControlCenter() {
   const [mounted, setMounted] = useState(false);
@@ -444,7 +449,7 @@ export function PmControlCenter() {
             >
               {roles.map((role) => (
                 <option key={role} value={role}>
-                  {role}
+                  {formatRole(role)}
                 </option>
               ))}
             </select>
@@ -500,7 +505,7 @@ export function PmControlCenter() {
           <h4 className="font-medium">Assignments ({assignments.length})</h4>
           <ul className="mt-2 space-y-1 text-sm text-black">
             {assignments.slice(0, 5).map((assignment) => (
-              <li key={assignment.id}>{assignment.role}</li>
+              <li key={assignment.id}>{formatRole(assignment.role)}</li>
             ))}
           </ul>
         </div>

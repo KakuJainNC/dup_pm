@@ -47,6 +47,11 @@ function defaultVisibility(): VisibilityRow[] {
 
 type ModalTab = "activities" | "visibility";
 
+function formatRole(role: string): string {
+  if (role.toLowerCase() === "gsm") return "GSM";
+  return role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function RolesPage() {
   const [mounted, setMounted] = useState(false);
   const [supabase] = useState(() => getSupabaseBrowserClient());
@@ -226,7 +231,7 @@ export default function RolesPage() {
                   className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-6 text-center shadow-sm hover:shadow-md transition-shadow"
                 >
                   <ShieldCheck size={32} className="mb-2 text-[#355e3b]" />
-                  <p className="text-sm font-semibold text-[#355e3b] capitalize">{r.name.replace(/_/g, " ")}</p>
+                  <p className="text-sm font-semibold text-[#355e3b]">{formatRole(r.name)}</p>
                   <span className="mt-2 rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-medium text-[#355e3b]">
                     {r.member_count} {r.member_count === 1 ? "member" : "members"}
                   </span>
@@ -271,7 +276,7 @@ export default function RolesPage() {
             {/* Modal header */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-[#355e3b] capitalize">{permRole.name.replace(/_/g, " ")} — Permissions</h2>
+                <h2 className="text-lg font-bold text-[#355e3b]">{formatRole(permRole.name)} — Permissions</h2>
                 <p className="text-xs text-black/50 mt-0.5">Configure what this role can do and see</p>
               </div>
               <button onClick={() => setPermRole(null)} className="text-xl leading-none text-black hover:text-[#355e3b]">&times;</button>

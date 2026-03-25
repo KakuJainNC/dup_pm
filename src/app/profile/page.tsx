@@ -33,6 +33,45 @@ const APP_ROLE_COLORS: Record<string, string> = {
   viewer:  "bg-gray-100 text-gray-600",
 };
 
+function formatRole(role: string): string {
+  if (role.toLowerCase() === "gsm") return "GSM";
+  return role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getCapabilities(appRole: string, teamRole: string | null) {
+  const isAdmin = appRole === "admin";
+  const tr = teamRole?.toLowerCase() ?? null;
+  const caps: Array<{ group: string; items: string[] }> = [];
+
+  const propItems: string[] = [];
+  if (isAdmin) {
+    propItems.push("View all properties and sections");
+    propItems.push("Add, edit, and delete properties and sections");
+    propItems.push("Activate or deactivate properties");
+    propItems.push("Post comments on any property");
+  } else if (tr === "accounting") {
+    propItems.push("View all properties and sections");
+  } else if (tr === "gsm") {
+    propItems.push("View properties assigned to you");
+    propItems.push("Post comments on your assigned properties");
+  } else if (tr) {
+    propItems.push("View properties assigned to you");
+  }
+  if (propItems.length) caps.push({ group: "Properties & Sections", items: propItems });
+
+  const tmItems: string[] = ["View all team members"];
+  if (isAdmin) tmItems.push("Add, edit, and delete team members");
+  caps.push({ group: "Team Members", items: tmItems });
+
+  const roleItems: string[] = ["View all roles"];
+  if (isAdmin) roleItems.push("Add, edit, and delete roles");
+  caps.push({ group: "Roles", items: roleItems });
+
+  caps.push({ group: "Profile", items: ["View and edit your name and photo"] });
+
+  return caps;
+}
+
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
   const [supabase] = useState(() => getSupabaseBrowserClient());
@@ -199,8 +238,8 @@ export default function ProfilePage() {
               {profile.team_role && (
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-sm text-black/60">Team Role</span>
-                  <span className="rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-semibold capitalize text-[#355e3b]">
-                    {profile.team_role.replace(/_/g, " ")}
+                  <span className="rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-semibold text-[#355e3b]">
+                    {formatRole(profile.team_role)}
                   </span>
                 </div>
               )}
@@ -251,6 +290,26 @@ export default function ProfilePage() {
             </div>
           </form>
 
+        </section>
+
+        {/* Capabilities section */}
+        <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
+          <h3 className="text-base font-bold text-[#355e3b] mb-4">What you can do</h3>
+          <div className="space-y-4">
+            {getCapabilities(profile.app_role, profile.team_role).map(({ group, items }) => (
+              <div key={group}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-black/40 mb-1.5">{group}</p>
+                <ul className="space-y-1">
+                  {items.map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-black">
+                      <span className="mt-0.5 text-[#355e3b] shrink-0">✓</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </section>
       </main>
       {showToast && <Toast message="Profile updated" />}

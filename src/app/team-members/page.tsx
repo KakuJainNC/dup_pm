@@ -22,6 +22,11 @@ type TeamMember = {
   profile: Profile | null;
 };
 
+function formatRole(role: string): string {
+  if (role.toLowerCase() === "gsm") return "GSM";
+  return role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const DIAL_CODES = [
   { code: "+52",  label: "🇲🇽 +52 | MEX" },
   { code: "+1",   label: "🇺🇸 +1 | USA" },
@@ -90,7 +95,7 @@ export default function TeamMembersPage() {
   const fetchRoles = useCallback(async () => {
     const res = await fetch("/api/roles");
     const payload = await res.json() as { data?: { name: string }[] };
-    const names = (payload.data ?? []).map((r) => r.name);
+    const names = (payload.data ?? []).map((r) => r.name).sort((a, b) => a.localeCompare(b));
     setRoles(names);
     setRole((prev) => prev || names[0] || "");
   }, []);
@@ -233,8 +238,8 @@ export default function TeamMembersPage() {
                         <td className="px-4 py-3 text-black/70">{m.email ?? "—"}</td>
                         <td className="px-4 py-3">
                           {m.role ? (
-                            <span className="rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-medium text-[#355e3b] capitalize">
-                              {m.role.replace(/_/g, " ")}
+                            <span className="rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-medium text-[#355e3b]">
+                              {formatRole(m.role)}
                             </span>
                           ) : "—"}
                         </td>
@@ -349,7 +354,7 @@ export default function TeamMembersPage() {
                 onChange={(e) => setRole(e.target.value)}
               >
                 {roles.map((r) => (
-                  <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
+                  <option key={r} value={r}>{formatRole(r)}</option>
                 ))}
               </select>
 
