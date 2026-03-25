@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseRouteClient } from "@/lib/supabase/route";
 
+export async function GET(req: NextRequest, ctx: RouteContext<"/api/property-sections/[id]">) {
+  const supabase = getSupabaseRouteClient(req.headers.get("authorization"));
+  if (!supabase) return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
+  const { id } = await ctx.params;
+  const { data, error } = await supabase
+    .from("property_sections")
+    .select("id, section_name, created_at, created_by")
+    .eq("id", id)
+    .single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ data });
+}
+
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/property-sections/[id]">) {
   const authHeader = req.headers.get("authorization");
   if (!authHeader) {

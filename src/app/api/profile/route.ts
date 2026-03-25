@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from("team_members")
-      .select("full_name, role, phone, dial_code")
+      .select("id, full_name, role, phone, dial_code")
       .eq("user_id", user.id)
       .maybeSingle(),
   ]);
@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     data: {
       ...profileRes.data,
+      team_member_id: memberRes.data?.id ?? null,
       team_role: memberRes.data?.role ?? null,
       phone: memberRes.data?.phone ?? null,
       dial_code: memberRes.data?.dial_code ?? null,
