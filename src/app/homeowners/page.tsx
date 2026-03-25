@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
+import { DetailBand } from "@/components/detail-band";
 import { Toast } from "@/components/toast";
 
 type Profile = {
@@ -360,23 +361,19 @@ export default function HomeownersPage() {
 
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
-      {!selectedHomeowner && <PageBand title="Homeowners" />}
+      {selectedHomeowner ? (
+        <DetailBand items={[
+          { label: "Homeowners", onClick: () => { setSelectedHomeowner(null); setAssignedProperties([]); } },
+          { label: selectedHomeowner.full_name },
+        ]} />
+      ) : (
+        <PageBand title="Homeowners" />
+      )}
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 sm:px-10">
 
         {/* Detail view */}
         {selectedHomeowner ? (
           <>
-            {/* Breadcrumb */}
-            <nav className="flex items-center gap-1.5 text-sm text-black/50">
-              <button
-                onClick={() => { setSelectedHomeowner(null); setAssignedProperties([]); }}
-                className="hover:text-[#355e3b] transition-colors"
-              >
-                Homeowners
-              </button>
-              <span>/</span>
-              <span className="text-black/70">{selectedHomeowner.full_name}</span>
-            </nav>
 
             {/* Title card */}
             <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
@@ -533,50 +530,31 @@ export default function HomeownersPage() {
               <h2 className="text-lg font-bold text-[#355e3b]">Add Homeowner</h2>
               <button onClick={() => { resetAddForm(); setShowAddModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
-            <form onSubmit={handleAddSubmit} className="mt-4 space-y-3">
-              <input
-                required
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Full name"
-                value={addName}
-                onChange={(e) => setAddName(e.target.value)}
-              />
-              <input
-                type="email"
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Email (optional)"
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <select
-                  className="w-[35%] rounded-lg border border-[#b8cbbd] px-2 py-2 text-sm outline-none focus:border-[#355e3b]"
-                  value={addDialCode}
-                  onChange={(e) => setAddDialCode(e.target.value)}
-                >
-                  {DIAL_CODES.map((d) => (
-                    <option key={d.code} value={d.code}>{d.label}</option>
-                  ))}
-                </select>
-                <input
-                  className="w-[65%] rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                  placeholder="Phone (optional)"
-                  value={addPhone}
-                  onChange={(e) => setAddPhone(e.target.value)}
-                />
+            <form onSubmit={handleAddSubmit} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Full Name</label>
+                <input required className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter full name" value={addName} onChange={(e) => setAddName(e.target.value)} />
               </div>
-              <textarea
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b] resize-none"
-                placeholder="Notes (optional)"
-                rows={2}
-                value={addNotes}
-                onChange={(e) => setAddNotes(e.target.value)}
-              />
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Email</label>
+                <input type="email" className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter email address (optional)" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Phone</label>
+                <div className="flex gap-2">
+                  <select className="w-[35%] rounded-lg border border-[#b8cbbd] px-2 py-2 text-sm outline-none focus:border-[#355e3b]" value={addDialCode} onChange={(e) => setAddDialCode(e.target.value)}>
+                    {DIAL_CODES.map((d) => <option key={d.code} value={d.code}>{d.label}</option>)}
+                  </select>
+                  <input className="w-[65%] rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter phone number (optional)" value={addPhone} onChange={(e) => setAddPhone(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Notes</label>
+                <textarea className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b] resize-none" placeholder="Write any notes (optional)" rows={2} value={addNotes} onChange={(e) => setAddNotes(e.target.value)} />
+              </div>
               <PropertyCheckboxList selectedIds={addSelectedPropertyIds} onToggle={toggleAddProperty} />
               {addError && <p className="text-xs text-red-600">{addError}</p>}
-              <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
-                Add Homeowner
-              </button>
+              <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">Add Homeowner</button>
             </form>
           </div>
         </div>
@@ -590,50 +568,31 @@ export default function HomeownersPage() {
               <h2 className="text-lg font-bold text-[#355e3b]">Edit Homeowner</h2>
               <button onClick={() => { resetEditForm(); setShowEditModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
-            <form onSubmit={handleEditSubmit} className="mt-4 space-y-3">
-              <input
-                required
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Full name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-              <input
-                type="email"
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Email (optional)"
-                value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <select
-                  className="w-[35%] rounded-lg border border-[#b8cbbd] px-2 py-2 text-sm outline-none focus:border-[#355e3b]"
-                  value={editDialCode}
-                  onChange={(e) => setEditDialCode(e.target.value)}
-                >
-                  {DIAL_CODES.map((d) => (
-                    <option key={d.code} value={d.code}>{d.label}</option>
-                  ))}
-                </select>
-                <input
-                  className="w-[65%] rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                  placeholder="Phone (optional)"
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                />
+            <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Full Name</label>
+                <input required className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter full name" value={editName} onChange={(e) => setEditName(e.target.value)} />
               </div>
-              <textarea
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b] resize-none"
-                placeholder="Notes (optional)"
-                rows={2}
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-              />
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Email</label>
+                <input type="email" className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter email address (optional)" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Phone</label>
+                <div className="flex gap-2">
+                  <select className="w-[35%] rounded-lg border border-[#b8cbbd] px-2 py-2 text-sm outline-none focus:border-[#355e3b]" value={editDialCode} onChange={(e) => setEditDialCode(e.target.value)}>
+                    {DIAL_CODES.map((d) => <option key={d.code} value={d.code}>{d.label}</option>)}
+                  </select>
+                  <input className="w-[65%] rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter phone number (optional)" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Notes</label>
+                <textarea className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b] resize-none" placeholder="Write any notes (optional)" rows={2} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} />
+              </div>
               <PropertyCheckboxList selectedIds={editSelectedPropertyIds} onToggle={toggleEditProperty} />
               {editError && <p className="text-xs text-red-600">{editError}</p>}
-              <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
-                Save Changes
-              </button>
+              <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">Save Changes</button>
             </form>
           </div>
         </div>

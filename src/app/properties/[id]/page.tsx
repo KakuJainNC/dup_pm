@@ -4,7 +4,7 @@ import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { PageBand } from "@/components/page-band";
+import { DetailBand } from "@/components/detail-band";
 import { Toast } from "@/components/toast";
 
 type Property = {
@@ -347,80 +347,40 @@ function PropertyDetailContent() {
 
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
+      <DetailBand items={[
+        { label: "Properties", href: "/properties" },
+        ...(fromSectionId && sectionName ? [{ label: sectionName, href: `/properties/sections/${fromSectionId}` }] : []),
+        { label: property.name },
+      ]} />
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-10 sm:px-10">
-
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-sm text-black/50">
-          <Link href="/properties" className="hover:text-[#355e3b] transition-colors">Properties</Link>
-          {fromSectionId && sectionName && (
-            <>
-              <span>/</span>
-              <Link href={`/properties/sections/${fromSectionId}`} className="hover:text-[#355e3b] transition-colors">{sectionName}</Link>
-            </>
-          )}
-          <span>/</span>
-          <span className="font-medium text-[#355e3b]">{property.name}</span>
-        </nav>
 
         {/* Title card */}
         <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-          {editMode ? (
-            <form onSubmit={saveProperty} className="space-y-3">
-              <input required className="w-full rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-base font-bold text-[#355e3b] outline-none focus:border-[#355e3b]" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Property name" />
-              <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-sm outline-none focus:border-[#355e3b]" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Address (optional)" />
-              <p className="text-xs font-semibold uppercase tracking-wide text-black/40 pt-1">Staff</p>
-              <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={editManagerId} onChange={(e) => setEditManagerId(e.target.value)}>
-                <option value="">Property Manager (optional)</option>
-                {managers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-              </select>
-              <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={editMaintenanceId} onChange={(e) => setEditMaintenanceId(e.target.value)}>
-                <option value="">Maintenance (optional)</option>
-                {maintenance.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-              </select>
-              <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={editHousekeepingId} onChange={(e) => setEditHousekeepingId(e.target.value)}>
-                <option value="">Housekeeping (optional)</option>
-                {housekeeping.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-              </select>
-              <p className="text-xs font-semibold uppercase tracking-wide text-black/40 pt-1">General Info</p>
-              <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-sm outline-none focus:border-[#355e3b]" value={editHousePhone} onChange={(e) => setEditHousePhone(e.target.value)} placeholder="House phone (optional)" />
-              <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-sm outline-none focus:border-[#355e3b]" value={editMainDoorCode} onChange={(e) => setEditMainDoorCode(e.target.value)} placeholder="Main door access code (optional)" />
-              <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-sm outline-none focus:border-[#355e3b]" value={editGarageCode} onChange={(e) => setEditGarageCode(e.target.value)} placeholder="Garage access code (optional)" />
-              <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-sm outline-none focus:border-[#355e3b]" value={editWifiPassword} onChange={(e) => setEditWifiPassword(e.target.value)} placeholder="Wi-Fi password (optional)" />
-              {editError && <p className="text-xs text-red-600">{editError}</p>}
-              <div className="flex gap-2 pt-1">
-                <button type="submit" disabled={saving} className="rounded-lg bg-[#355e3b] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#2d5233] disabled:opacity-50 transition-colors">{saving ? "Saving…" : "Save"}</button>
-                <button type="button" onClick={() => { setEditMode(false); setEditError(""); }} className="rounded-lg border border-[#c9d9cc] px-3 py-1.5 text-sm font-medium text-black hover:bg-[#f3f8f4] transition-colors">Cancel</button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <div className="flex items-start gap-4">
-                <div className={`h-14 w-14 shrink-0 rounded-xl flex items-center justify-center ${property.is_active ? "bg-green-100" : "bg-gray-100"}`}>
-                  <span className={`h-5 w-5 rounded-sm ${property.is_active ? "bg-green-500" : "bg-gray-400"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-black/40 uppercase tracking-wide">{sectionName ?? "Property"}</p>
-                  <h2 className="text-xl font-bold text-[#355e3b] mt-0.5">{property.name}</h2>
-                  {property.address && <p className="mt-0.5 text-sm text-black/60">{property.address}</p>}
-                  {isAdmin && (
-                    <div className="flex items-center gap-2 mt-3">
-                      <button onClick={startEdit} className="rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-xs font-medium text-[#355e3b] hover:bg-[#355e3b] hover:text-white transition-colors">Edit</button>
-                      <button onClick={() => { setDeleteConfirm(true); setDeleteError(""); }} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors">Delete</button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {deleteConfirm && (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
-                  <p className="text-sm font-medium text-red-700">Delete this property?</p>
-                  {deleteError && <p className="mt-1 text-xs text-red-600">{deleteError}</p>}
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={deleteProperty} disabled={deleting} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors">{deleting ? "Deleting…" : "Yes, delete"}</button>
-                    <button onClick={() => { setDeleteConfirm(false); setDeleteError(""); }} className="rounded-lg border border-[#c9d9cc] px-3 py-1.5 text-sm font-medium text-black hover:bg-[#f3f8f4] transition-colors">Cancel</button>
-                  </div>
+          <div className="flex items-start gap-4">
+            <div className={`h-14 w-14 shrink-0 rounded-xl flex items-center justify-center ${property.is_active ? "bg-green-100" : "bg-gray-100"}`}>
+              <span className={`h-5 w-5 rounded-sm ${property.is_active ? "bg-green-500" : "bg-gray-400"}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-black/40 uppercase tracking-wide">{sectionName ?? "Property"}</p>
+              <h2 className="text-xl font-bold text-[#355e3b] mt-0.5">{property.name}</h2>
+              {property.address && <p className="mt-0.5 text-sm text-black/60">{property.address}</p>}
+              {isAdmin && (
+                <div className="flex items-center gap-2 mt-3">
+                  <button onClick={startEdit} className="rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-xs font-medium text-[#355e3b] hover:bg-[#355e3b] hover:text-white transition-colors">Edit</button>
+                  <button onClick={() => { setDeleteConfirm(true); setDeleteError(""); }} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors">Delete</button>
                 </div>
               )}
-            </>
+            </div>
+          </div>
+          {deleteConfirm && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-sm font-medium text-red-700">Delete this property?</p>
+              {deleteError && <p className="mt-1 text-xs text-red-600">{deleteError}</p>}
+              <div className="mt-2 flex gap-2">
+                <button onClick={deleteProperty} disabled={deleting} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors">{deleting ? "Deleting…" : "Yes, delete"}</button>
+                <button onClick={() => { setDeleteConfirm(false); setDeleteError(""); }} className="rounded-lg border border-[#c9d9cc] px-3 py-1.5 text-sm font-medium text-black hover:bg-[#f3f8f4] transition-colors">Cancel</button>
+              </div>
+            </div>
           )}
         </section>
 
@@ -567,6 +527,70 @@ function PropertyDetailContent() {
           <Link href={backHref} className="rounded-lg border border-[#c9d9cc] bg-white px-5 py-2 text-sm font-medium text-black hover:bg-[#f3f8f4] transition-colors">← Back</Link>
         </div>
       </main>
+
+      {/* Edit property modal */}
+      {editMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-[#355e3b]">Edit Property</h2>
+              <button onClick={() => { setEditMode(false); setEditError(""); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+            </div>
+            <form onSubmit={saveProperty} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Property Name</label>
+                <input required className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter property name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Address</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter address (optional)" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-black/40 pt-1">Staff</p>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Property Manager</label>
+                <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={editManagerId} onChange={(e) => setEditManagerId(e.target.value)}>
+                  <option value="">Choose a property manager</option>
+                  {managers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Maintenance</label>
+                <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={editMaintenanceId} onChange={(e) => setEditMaintenanceId(e.target.value)}>
+                  <option value="">Choose a maintenance member</option>
+                  {maintenance.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Housekeeping</label>
+                <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={editHousekeepingId} onChange={(e) => setEditHousekeepingId(e.target.value)}>
+                  <option value="">Choose a housekeeping member</option>
+                  {housekeeping.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                </select>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-black/40 pt-1">General Info</p>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">House Phone</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter house phone number" value={editHousePhone} onChange={(e) => setEditHousePhone(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Main Door Code</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter main door access code" value={editMainDoorCode} onChange={(e) => setEditMainDoorCode(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Garage Code</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter garage access code" value={editGarageCode} onChange={(e) => setEditGarageCode(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Wi-Fi Password</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter Wi-Fi password" value={editWifiPassword} onChange={(e) => setEditWifiPassword(e.target.value)} />
+              </div>
+              {editError && <p className="text-xs text-red-600">{editError}</p>}
+              <button type="submit" disabled={saving} className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] disabled:opacity-50 transition-colors">{saving ? "Saving…" : "Save Changes"}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showToast && <Toast message={toastMessage} />}
     </div>
   );

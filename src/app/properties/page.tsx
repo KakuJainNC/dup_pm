@@ -418,97 +418,61 @@ export default function PropertiesPage() {
               <h2 className="text-lg font-bold text-[#355e3b]">Add Property</h2>
               <button onClick={() => { setPropName(""); setPropAddress(""); setPropSectionId(""); setPropManagerId(""); setPropMaintenanceId(""); setPropHousekeepingId(""); setPropHousePhone(""); setPropMainDoorCode(""); setPropGarageCode(""); setPropWifiPassword(""); setPropError(""); setShowPropertyModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
-            <form onSubmit={addProperty} className="mt-4 space-y-3">
-              <input
-                required
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Property name"
-                value={propName}
-                onChange={(e) => setPropName(e.target.value)}
-              />
-              <input
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Address (optional)"
-                value={propAddress}
-                onChange={(e) => setPropAddress(e.target.value)}
-              />
-              <select
-                required
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                value={propSectionId}
-                onChange={(e) => setPropSectionId(e.target.value)}
-              >
-                <option value="">Select section</option>
-                {sections.map((s) => (
-                  <option key={s.id} value={s.id}>{s.section_name}</option>
-                ))}
-              </select>
-
-              {/* Property Manager */}
-              <select
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                value={propManagerId}
-                onChange={(e) => setPropManagerId(e.target.value)}
-              >
-                <option value="">Property Manager (optional)</option>
-                {teamMembers.filter((m) => m.role === "property_manager").map((m) => (
-                  <option key={m.id} value={m.id}>{m.full_name}</option>
-                ))}
-              </select>
-
-              {/* Maintenance */}
-              <select
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                value={propMaintenanceId}
-                onChange={(e) => setPropMaintenanceId(e.target.value)}
-              >
-                <option value="">Maintenance (optional)</option>
-                {teamMembers.filter((m) => m.role === "maintenance").map((m) => (
-                  <option key={m.id} value={m.id}>{m.full_name}</option>
-                ))}
-              </select>
-
-              {/* Housekeeping */}
-              <select
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                value={propHousekeepingId}
-                onChange={(e) => setPropHousekeepingId(e.target.value)}
-              >
-                <option value="">Housekeeping (optional)</option>
-                {teamMembers.filter((m) => m.role === "housekeeping").map((m) => (
-                  <option key={m.id} value={m.id}>{m.full_name}</option>
-                ))}
-              </select>
-
-              <input
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="House Phone (optional)"
-                value={propHousePhone}
-                onChange={(e) => setPropHousePhone(e.target.value)}
-              />
-              <input
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Main Door Code (optional)"
-                value={propMainDoorCode}
-                onChange={(e) => setPropMainDoorCode(e.target.value)}
-              />
-              <input
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Garage Code (optional)"
-                value={propGarageCode}
-                onChange={(e) => setPropGarageCode(e.target.value)}
-              />
-              <input
-                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Wi-Fi Password (optional)"
-                value={propWifiPassword}
-                onChange={(e) => setPropWifiPassword(e.target.value)}
-              />
-
+            <form onSubmit={addProperty} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Property Name</label>
+                <input required className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter property name" value={propName} onChange={(e) => setPropName(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Address</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter address (optional)" value={propAddress} onChange={(e) => setPropAddress(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Section</label>
+                <select required className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={propSectionId} onChange={(e) => setPropSectionId(e.target.value)}>
+                  <option value="">Choose a section</option>
+                  {sections.map((s) => <option key={s.id} value={s.id}>{s.section_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Property Manager</label>
+                <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={propManagerId} onChange={(e) => setPropManagerId(e.target.value)}>
+                  <option value="">Choose a property manager (optional)</option>
+                  {teamMembers.filter((m) => m.role === "property_manager").map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Maintenance</label>
+                <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={propMaintenanceId} onChange={(e) => setPropMaintenanceId(e.target.value)}>
+                  <option value="">Choose a maintenance member (optional)</option>
+                  {teamMembers.filter((m) => m.role === "maintenance").map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Housekeeping</label>
+                <select className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" value={propHousekeepingId} onChange={(e) => setPropHousekeepingId(e.target.value)}>
+                  <option value="">Choose a housekeeping member (optional)</option>
+                  {teamMembers.filter((m) => m.role === "housekeeping").map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">House Phone</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter house phone number (optional)" value={propHousePhone} onChange={(e) => setPropHousePhone(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Main Door Code</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter main door access code (optional)" value={propMainDoorCode} onChange={(e) => setPropMainDoorCode(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Garage Code</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter garage access code (optional)" value={propGarageCode} onChange={(e) => setPropGarageCode(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black/70 mb-1">Wi-Fi Password</label>
+                <input className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]" placeholder="Enter Wi-Fi password (optional)" value={propWifiPassword} onChange={(e) => setPropWifiPassword(e.target.value)} />
+              </div>
               {propError && <p className="text-xs text-red-600">{propError}</p>}
-              <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
-                Add Property
-              </button>
+              <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">Add Property</button>
             </form>
           </div>
         </div>
