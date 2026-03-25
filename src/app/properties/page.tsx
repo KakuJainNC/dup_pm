@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Buildings, House } from "@phosphor-icons/react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
@@ -132,9 +133,13 @@ export default function PropertiesPage() {
     showSuccess("Property added");
   };
 
-  // Property count per section
-  const propertyCounts = properties.reduce<Record<string, number>>((acc, p) => {
-    acc[p.property_section_id] = (acc[p.property_section_id] ?? 0) + 1;
+  // Property counts per section
+  const activeCountPerSection = properties.reduce<Record<string, number>>((acc, p) => {
+    if (p.is_active) acc[p.property_section_id] = (acc[p.property_section_id] ?? 0) + 1;
+    return acc;
+  }, {});
+  const inactiveCountPerSection = properties.reduce<Record<string, number>>((acc, p) => {
+    if (!p.is_active) acc[p.property_section_id] = (acc[p.property_section_id] ?? 0) + 1;
     return acc;
   }, {});
 
@@ -211,7 +216,8 @@ export default function PropertiesPage() {
                     <thead>
                       <tr className="border-b border-[#c9d9cc] bg-[#f3f8f4]">
                         <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Section Name</th>
-                        <th className="px-4 py-3 text-right font-semibold text-[#355e3b]">Properties</th>
+                        <th className="px-4 py-3 text-right font-semibold text-[#355e3b]">Active</th>
+                        <th className="px-4 py-3 text-right font-semibold text-[#355e3b]">Inactive</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -221,10 +227,22 @@ export default function PropertiesPage() {
                           onClick={() => router.push(`/properties/sections/${s.id}`)}
                           className={`cursor-pointer border-b border-[#c9d9cc] last:border-0 hover:bg-[#eaf3ec] transition-colors ${i % 2 === 0 ? "bg-white" : "bg-[#f9fcfa]"}`}
                         >
-                          <td className="px-4 py-3 font-medium">{s.section_name}</td>
+                          <td className="px-4 py-3 font-medium">
+                            <div className="flex items-center gap-2">
+                              <Buildings size={18} className="shrink-0 text-[#355e3b]" />
+                              {s.section_name}
+                            </div>
+                          </td>
                           <td className="px-4 py-3 text-right">
-                            <span className="rounded-full bg-[#355e3b]/10 px-2.5 py-1 text-xs font-medium text-[#355e3b]">
-                              {propertyCounts[s.id] ?? 0}
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                              {activeCountPerSection[s.id] ?? 0}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">
+                              <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                              {inactiveCountPerSection[s.id] ?? 0}
                             </span>
                           </td>
                         </tr>
@@ -313,17 +331,10 @@ export default function PropertiesPage() {
                       onClick={() => router.push(`/properties/${p.id}`)}
                       className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3 hover:bg-[#eaf3ec] transition-colors"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="32"
-                        height="32"
-                        viewBox="0 0 256 256"
-                        className="shrink-0"
-                        fill={p.is_active ? "#22c55e" : "#9ca3af"}
-                        style={p.is_active ? { filter: "drop-shadow(0 0 5px #22c55e)" } : undefined}
-                      >
-                        <path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z" />
-                      </svg>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${p.is_active ? "bg-green-500" : "bg-gray-400"}`} />
+                        <House size={24} className="text-[#355e3b]" />
+                      </div>
                       <div>
                         <p className="text-sm font-medium">{p.name}</p>
                         <p className="text-xs text-black/60">

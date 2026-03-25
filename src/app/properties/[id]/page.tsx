@@ -187,6 +187,18 @@ function PropertyDetailContent() {
     router.push(fromSectionId ? `/properties/sections/${fromSectionId}` : "/properties");
   };
 
+  const deleteComment = async (commentId: string) => {
+    const authHeader = await getAuthHeader();
+    if (!authHeader) return;
+    const res = await fetch(`/api/property-comments/${commentId}`, {
+      method: "DELETE",
+      headers: { Authorization: authHeader },
+    });
+    if (!res.ok) return;
+    await fetchComments();
+    showSuccess("Comment deleted");
+  };
+
   const postComment = async (e: FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
@@ -398,6 +410,14 @@ function PropertyDetailContent() {
                       <span className="text-xs text-black/40">
                         {new Date(c.created_at).toLocaleString()}
                       </span>
+                      {isAdmin && (
+                        <button
+                          onClick={() => deleteComment(c.id)}
+                          className="ml-auto text-xs text-red-400 hover:text-red-600 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                     <p className="mt-0.5 text-sm text-black/80">{c.content}</p>
                   </div>
