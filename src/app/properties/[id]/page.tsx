@@ -55,6 +55,7 @@ function PropertyDetailContent() {
 
   const [commentText, setCommentText] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentError, setCommentError] = useState("");
 
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("Done");
@@ -189,14 +190,19 @@ function PropertyDetailContent() {
     if (!commentText.trim()) return;
     const authHeader = await getAuthHeader();
     if (!authHeader) return;
+    setCommentError("");
     setCommentSubmitting(true);
     const res = await fetch("/api/property-comments", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
       body: JSON.stringify({ property_id: propertyId, content: commentText.trim() }),
     });
+    const payload = (await res.json()) as { error?: string };
     setCommentSubmitting(false);
-    if (!res.ok) return;
+    if (!res.ok) {
+      setCommentError(payload.error ?? "Failed to post comment.");
+      return;
+    }
     setCommentText("");
     await fetchComments();
   };
@@ -398,20 +404,23 @@ function PropertyDetailContent() {
           )}
 
           {canComment && (
-            <form onSubmit={postComment} className="mt-5 flex gap-2">
-              <input
-                className="flex-1 rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
-                placeholder="Write a comment…"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={commentSubmitting || !commentText.trim()}
-                className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] disabled:opacity-50 transition-colors"
-              >
-                Post
-              </button>
+            <form onSubmit={postComment} className="mt-5 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                  placeholder="Write a comment…"
+                  value={commentText}
+                  onChange={(e) => { setCommentText(e.target.value); setCommentError(""); }}
+                />
+                <button
+                  type="submit"
+                  disabled={commentSubmitting || !commentText.trim()}
+                  className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] disabled:opacity-50 transition-colors"
+                >
+                  {commentSubmitting ? "Posting…" : "Post"}
+                </button>
+              </div>
+              {commentError && <p className="text-xs text-red-600">{commentError}</p>}
             </form>
           )}
         </section>
