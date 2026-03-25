@@ -15,11 +15,12 @@ export function HeroHeader() {
       const fullName: string | undefined =
         user.user_metadata?.full_name ??
         user.user_metadata?.name;
-      const firstName = fullName
+      const raw = fullName
         ? fullName.split(" ")[0]
         : user.email
           ? user.email.split("@")[0]
           : null;
+      const firstName = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : null;
       setDisplayName(firstName ?? null);
     });
   }, []);

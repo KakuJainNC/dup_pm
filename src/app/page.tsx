@@ -1,53 +1,10 @@
 import Link from "next/link";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { HeroHeader } from "@/components/hero-header";
 import { Footer } from "@/components/footer";
+import { DashboardScores } from "@/components/dashboard-scores";
 import { ShieldCheck, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
-
-type DashboardCounts = {
-  homeowners: number;
-  properties: number;
-  sections: number;
-  teamMembers: number;
-};
-
-async function getDashboardCounts() {
-  const supabase = getSupabaseServerClient();
-
-  if (!supabase) {
-    return {
-      counts: null,
-      error:
-        "Missing environment variables. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.",
-    };
-  }
-
-  const [teamRes, propertyRes, homeownerRes, sectionRes] = await Promise.all([
-    supabase.from("team_members").select("*", { count: "exact", head: true }),
-    supabase.from("properties").select("*", { count: "exact", head: true }).eq("is_active", true),
-    supabase.from("homeowners").select("*", { count: "exact", head: true }),
-    supabase.from("property_sections").select("*", { count: "exact", head: true }),
-  ]);
-
-  const errors = [teamRes.error, propertyRes.error, homeownerRes.error, sectionRes.error].filter(Boolean);
-  if (errors.length > 0) {
-    return {
-      counts: null,
-      error: "Supabase tables are not ready yet. Run the SQL schema from the bootcamp step, then refresh.",
-    };
-  }
-
-  const counts: DashboardCounts = {
-    homeowners: homeownerRes.count ?? 0,
-    properties: propertyRes.count ?? 0,
-    sections: sectionRes.count ?? 0,
-    teamMembers: teamRes.count ?? 0,
-  };
-
-  return { counts, error: null };
-}
 
 const navItems = [
   {
@@ -94,38 +51,13 @@ const navItems = [
   },
 ];
 
-export default async function Home() {
-  const { counts, error } = await getDashboardCounts();
-
+export default function Home() {
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
       <HeroHeader />
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 pb-10 pt-6 sm:px-10">
 
-        {error ? (
-          <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {error}
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-4">
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-              <p className="text-3xl font-bold text-[#355e3b]">{counts?.homeowners}</p>
-              <p className="mt-1 text-sm text-black">Homeowners</p>
-            </div>
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-              <p className="text-3xl font-bold text-[#355e3b]">{counts?.properties}</p>
-              <p className="mt-1 text-sm text-black">Properties</p>
-            </div>
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-              <p className="text-3xl font-bold text-[#355e3b]">{counts?.sections}</p>
-              <p className="mt-1 text-sm text-black">Sections</p>
-            </div>
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-              <p className="text-3xl font-bold text-[#355e3b]">{counts?.teamMembers}</p>
-              <p className="mt-1 text-sm text-black">Team Members</p>
-            </div>
-          </div>
-        )}
+        <DashboardScores />
 
         <div className="flex justify-around py-4">
           {navItems.map((item) => (
