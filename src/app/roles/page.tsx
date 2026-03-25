@@ -244,7 +244,7 @@ export default function RolesPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Add Role</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-xl leading-none text-black hover:text-[#355e3b]">&times;</button>
+              <button onClick={() => { setRoleName(""); setAddError(""); setShowAddModal(false); }} className="text-xl leading-none text-black hover:text-[#355e3b]">&times;</button>
             </div>
             <form onSubmit={addRole} className="mt-4 space-y-3">
               <input

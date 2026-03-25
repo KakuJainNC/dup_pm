@@ -359,7 +359,7 @@ export default function PropertiesPage() {
                     onChange={(e) => setSectionSearch(e.target.value)}
                   />
                   <button
-                    onClick={() => { setSectionError(""); setShowSectionModal(true); }}
+                    onClick={() => { setSectionName(""); setSectionError(""); setShowSectionModal(true); }}
                     className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors"
                   >
                     + Add
@@ -420,7 +420,7 @@ export default function PropertiesPage() {
                     onChange={(e) => setPropertySearch(e.target.value)}
                   />
                   <button
-                    onClick={() => { setPropError(""); setShowPropertyModal(true); }}
+                    onClick={() => { setPropName(""); setPropAddress(""); setPropSectionId(""); setPropError(""); setShowPropertyModal(true); }}
                     className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors"
                   >
                     + Add
@@ -467,7 +467,7 @@ export default function PropertiesPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Add Section</h2>
-              <button onClick={() => setShowSectionModal(false)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+              <button onClick={() => { setSectionName(""); setSectionError(""); setShowSectionModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={addSection} className="mt-4 space-y-3">
               <input
@@ -492,7 +492,7 @@ export default function PropertiesPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Add Property</h2>
-              <button onClick={() => setShowPropertyModal(false)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+              <button onClick={() => { setPropName(""); setPropAddress(""); setPropSectionId(""); setPropError(""); setShowPropertyModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={addProperty} className="mt-4 space-y-3">
               <input
@@ -676,7 +676,7 @@ export default function PropertiesPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Add Property</h2>
-              <button onClick={() => setShowAddPropInSection(false)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+              <button onClick={() => { setSubPropName(""); setSubPropAddress(""); setSubPropError(""); setShowAddPropInSection(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={addPropertyInSection} className="mt-4 space-y-3">
               <input
