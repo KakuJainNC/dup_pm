@@ -56,7 +56,10 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    const message = error.code === "23505"
+      ? "A property with this name already exists."
+      : error.message;
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true });

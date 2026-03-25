@@ -79,6 +79,10 @@ export default function PropertiesPage() {
   const addSection = async (e: FormEvent) => {
     e.preventDefault();
     setSectionError("");
+    const duplicate = sections.some(
+      (s) => s.section_name.toLowerCase() === sectionName.trim().toLowerCase()
+    );
+    if (duplicate) { setSectionError("A section with this name already exists."); return; }
     const authHeader = await getAuthHeader();
     if (!authHeader) { setSectionError("You must be signed in."); return; }
     const res = await fetch("/api/property-sections", {
@@ -98,6 +102,10 @@ export default function PropertiesPage() {
   const addProperty = async (e: FormEvent) => {
     e.preventDefault();
     setPropError("");
+    const duplicate = properties.some(
+      (p) => p.name.toLowerCase() === propName.trim().toLowerCase()
+    );
+    if (duplicate) { setPropError("A property with this name already exists."); return; }
     const authHeader = await getAuthHeader();
     if (!authHeader) { setPropError("You must be signed in."); return; }
     const res = await fetch("/api/properties", {
