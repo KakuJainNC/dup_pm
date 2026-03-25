@@ -29,6 +29,12 @@ type AssignedProperty = {
   section_name: string | null;
 };
 
+type PropertyOption = {
+  id: string;
+  name: string;
+  is_active: boolean | null;
+};
+
 const DIAL_CODES = [
   { code: "+52",  label: "🇲🇽 +52 | MEX" },
   { code: "+1",   label: "🇺🇸 +1 | USA" },
@@ -51,6 +57,9 @@ export default function HomeownersPage() {
   const [homeowners, setHomeowners] = useState<Homeowner[]>([]);
   const [search, setSearch] = useState("");
 
+  // All properties (for assignment dropdowns)
+  const [allProperties, setAllProperties] = useState<PropertyOption[]>([]);
+
   // Detail view
   const [selectedHomeowner, setSelectedHomeowner] = useState<Homeowner | null>(null);
   const [assignedProperties, setAssignedProperties] = useState<AssignedProperty[]>([]);
@@ -63,6 +72,7 @@ export default function HomeownersPage() {
   const [addDialCode, setAddDialCode] = useState("+1");
   const [addPhone, setAddPhone] = useState("");
   const [addNotes, setAddNotes] = useState("");
+  const [addSelectedPropertyIds, setAddSelectedPropertyIds] = useState<string[]>([]);
   const [addError, setAddError] = useState("");
 
   // Edit modal
@@ -72,6 +82,7 @@ export default function HomeownersPage() {
   const [editDialCode, setEditDialCode] = useState("+1");
   const [editPhone, setEditPhone] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editSelectedPropertyIds, setEditSelectedPropertyIds] = useState<string[]>([]);
   const [editError, setEditError] = useState("");
 
   // Toast
@@ -92,10 +103,12 @@ export default function HomeownersPage() {
   };
 
   const fetchHomeowners = useCallback(async () => {
-    const res = await fetch("/api/homeowners");
+    const authHeader = await getAuthHeader();
+    const headers: HeadersInit = authHeader ? { Authorization: authHeader } : {};
+    const res = await fetch("/api/homeowners", { headers });
     const payload = await res.json() as { data?: Homeowner[] };
     setHomeowners(payload.data ?? []);
-  }, []);
+  }, [getAuthHeader]);
 
   const fetchProfile = useCallback(async () => {
     const authHeader = await getAuthHeader();
@@ -105,19 +118,31 @@ export default function HomeownersPage() {
     setProfile(payload.data ?? null);
   }, [getAuthHeader]);
 
+  const fetchAllProperties = useCallback(async () => {
+    const authHeader = await getAuthHeader();
+    const headers: HeadersInit = authHeader ? { Authorization: authHeader } : {};
+    const res = await fetch("/api/properties", { headers });
+    const payload = await res.json() as { data?: PropertyOption[] };
+    const sorted = (payload.data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    setAllProperties(sorted);
+  }, [getAuthHeader]);
+
   const fetchAssignedProperties = useCallback(async (homeownerId: string) => {
     setLoadingProperties(true);
-    const res = await fetch(`/api/property-homeowners?homeowner_id=${homeownerId}`);
+    const authHeader = await getAuthHeader();
+    const headers: HeadersInit = authHeader ? { Authorization: authHeader } : {};
+    const res = await fetch(`/api/property-homeowners?homeowner_id=${homeownerId}`, { headers });
     const payload = await res.json() as { data?: AssignedProperty[] };
     setAssignedProperties(payload.data ?? []);
     setLoadingProperties(false);
-  }, []);
+  }, [getAuthHeader]);
 
   useEffect(() => {
     setMounted(true);
     void fetchHomeowners();
     void fetchProfile();
-  }, [fetchHomeowners, fetchProfile]);
+    void fetchAllProperties();
+  }, [fetchHomeowners, fetchProfile, fetchAllProperties]);
 
   const resetAddForm = () => {
     setAddName("");
@@ -125,6 +150,7 @@ export default function HomeownersPage() {
     setAddDialCode("+1");
     setAddPhone("");
     setAddNotes("");
+    setAddSelectedPropertyIds([]);
     setAddError("");
   };
 
@@ -134,7 +160,20 @@ export default function HomeownersPage() {
     setEditDialCode("+1");
     setEditPhone("");
     setEditNotes("");
+    setEditSelectedPropertyIds([]);
     setEditError("");
+  };
+
+  const toggleAddProperty = (id: string) => {
+    setAddSelectedPropertyIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleEditProperty = (id: string) => {
+    setEditSelectedPropertyIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   const handleAddSubmit = async (e: FormEvent) => {
@@ -142,6 +181,8 @@ export default function HomeownersPage() {
     setAddError("");
     const authHeader = await getAuthHeader();
     if (!authHeader) { setAddError("You must be signed in."); return; }
+
+    // 1. Create homeowner
     const res = await fetch("/api/homeowners", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
@@ -153,21 +194,46 @@ export default function HomeownersPage() {
         notes: addNotes || null,
       }),
     });
-    const payload = await res.json() as { error?: string };
+    const payload = await res.json() as { error?: string; data?: { id: string } };
     if (!res.ok) { setAddError(payload.error ?? "Failed."); return; }
+
+    // 2. We need the new homeowner's id — re-fetch to find it by name+timestamp
+    const listRes = await fetch("/api/homeowners", { headers: { Authorization: authHeader } });
+    const listPayload = await listRes.json() as { data?: Homeowner[] };
+    const newHomeowner = (listPayload.data ?? []).find((h) => h.full_name === addName.trim());
+
+    // 3. Assign selected properties
+    if (newHomeowner && addSelectedPropertyIds.length > 0) {
+      await Promise.all(
+        addSelectedPropertyIds.map((propId) =>
+          fetch("/api/property-homeowners", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: authHeader },
+            body: JSON.stringify({ property_id: propId, homeowner_id: newHomeowner.id }),
+          })
+        )
+      );
+    }
+
     resetAddForm();
     setShowAddModal(false);
     await fetchHomeowners();
     showSuccess("Homeowner added");
   };
 
-  const openEditModal = (hw: Homeowner) => {
+  const openEditModal = async (hw: Homeowner) => {
     setEditName(hw.full_name);
     setEditEmail(hw.email ?? "");
     setEditDialCode(hw.dial_code ?? "+1");
     setEditPhone(hw.phone ?? "");
     setEditNotes(hw.notes ?? "");
     setEditError("");
+    // Pre-populate selected properties from current assignments
+    const authHeader = await getAuthHeader();
+    const headers: HeadersInit = authHeader ? { Authorization: authHeader } : {};
+    const res = await fetch(`/api/property-homeowners?homeowner_id=${hw.id}`, { headers });
+    const payload = await res.json() as { data?: AssignedProperty[] };
+    setEditSelectedPropertyIds((payload.data ?? []).map((ap) => ap.property_id));
     setShowEditModal(true);
   };
 
@@ -177,6 +243,8 @@ export default function HomeownersPage() {
     setEditError("");
     const authHeader = await getAuthHeader();
     if (!authHeader) { setEditError("You must be signed in."); return; }
+
+    // 1. Save homeowner data
     const res = await fetch(`/api/homeowners/${selectedHomeowner.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
@@ -190,12 +258,35 @@ export default function HomeownersPage() {
     });
     const payload = await res.json() as { error?: string };
     if (!res.ok) { setEditError(payload.error ?? "Failed."); return; }
+
+    // 2. Diff property assignments
+    const currentAssigned = assignedProperties.map((ap) => ({ junctionId: ap.id, propertyId: ap.property_id }));
+    const currentIds = currentAssigned.map((a) => a.propertyId);
+    const toAdd = editSelectedPropertyIds.filter((id) => !currentIds.includes(id));
+    const toRemove = currentAssigned.filter((a) => !editSelectedPropertyIds.includes(a.propertyId));
+
+    await Promise.all([
+      ...toAdd.map((propId) =>
+        fetch("/api/property-homeowners", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: authHeader },
+          body: JSON.stringify({ property_id: propId, homeowner_id: selectedHomeowner.id }),
+        })
+      ),
+      ...toRemove.map((a) =>
+        fetch(`/api/property-homeowners?id=${a.junctionId}`, {
+          method: "DELETE",
+          headers: { Authorization: authHeader },
+        })
+      ),
+    ]);
+
     resetEditForm();
     setShowEditModal(false);
-    // Update selectedHomeowner in place with form values
     setSelectedHomeowner((prev) =>
       prev ? { ...prev, full_name: editName, email: editEmail || null, dial_code: editDialCode, phone: editPhone || null, notes: editNotes || null } : prev
     );
+    await fetchAssignedProperties(selectedHomeowner.id);
     await fetchHomeowners();
     showSuccess("Homeowner updated");
   };
@@ -233,6 +324,39 @@ export default function HomeownersPage() {
   );
 
   if (!mounted) return null;
+
+  const PropertyCheckboxList = ({
+    selectedIds,
+    onToggle,
+  }: {
+    selectedIds: string[];
+    onToggle: (id: string) => void;
+  }) => (
+    <div>
+      <p className="text-xs font-medium text-black/60 mb-2">Assign to Properties (optional)</p>
+      {allProperties.length === 0 ? (
+        <p className="text-xs text-black/40 italic">No properties available.</p>
+      ) : (
+        <div className="max-h-40 overflow-y-auto rounded-lg border border-[#b8cbbd] divide-y divide-[#e8f0ea]">
+          {allProperties.map((p) => (
+            <label
+              key={p.id}
+              className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-[#eaf3ec] transition-colors"
+            >
+              <input
+                type="checkbox"
+                className="accent-[#355e3b]"
+                checked={selectedIds.includes(p.id)}
+                onChange={() => onToggle(p.id)}
+              />
+              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${p.is_active ? "bg-green-500" : "bg-gray-400"}`} />
+              <span className="text-sm">{p.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
@@ -395,7 +519,7 @@ export default function HomeownersPage() {
       {/* Add homeowner modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Add Homeowner</h2>
               <button onClick={() => { resetAddForm(); setShowAddModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
@@ -435,10 +559,11 @@ export default function HomeownersPage() {
               <textarea
                 className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b] resize-none"
                 placeholder="Notes (optional)"
-                rows={3}
+                rows={2}
                 value={addNotes}
                 onChange={(e) => setAddNotes(e.target.value)}
               />
+              <PropertyCheckboxList selectedIds={addSelectedPropertyIds} onToggle={toggleAddProperty} />
               {addError && <p className="text-xs text-red-600">{addError}</p>}
               <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
                 Add Homeowner
@@ -451,7 +576,7 @@ export default function HomeownersPage() {
       {/* Edit homeowner modal */}
       {showEditModal && selectedHomeowner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Edit Homeowner</h2>
               <button onClick={() => { resetEditForm(); setShowEditModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
@@ -491,10 +616,11 @@ export default function HomeownersPage() {
               <textarea
                 className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b] resize-none"
                 placeholder="Notes (optional)"
-                rows={3}
+                rows={2}
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
               />
+              <PropertyCheckboxList selectedIds={editSelectedPropertyIds} onToggle={toggleEditProperty} />
               {editError && <p className="text-xs text-red-600">{editError}</p>}
               <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
                 Save Changes
