@@ -4,7 +4,6 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
-import { PencilSimple, Trash } from "@phosphor-icons/react";
 
 type Profile = {
   app_role: "admin" | "manager" | "viewer";
@@ -361,7 +360,7 @@ export default function HomeownersPage() {
 
   return (
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
-      <PageBand title="Homeowners" />
+      {!selectedHomeowner && <PageBand title="Homeowners" />}
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 sm:px-10">
 
         {/* Detail view */}
@@ -379,102 +378,95 @@ export default function HomeownersPage() {
               <span className="text-black/70">{selectedHomeowner.full_name}</span>
             </nav>
 
-          <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-            {/* Standard detail header */}
-            <div className="flex items-start gap-4 mb-6">
-              {/* Avatar square */}
-              <div className="h-14 w-14 shrink-0 rounded-xl bg-[#355e3b] flex items-center justify-center text-white text-2xl font-bold">
-                {selectedHomeowner.full_name[0].toUpperCase()}
-              </div>
-              {/* Title + actions */}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-black/40 uppercase tracking-wide">Homeowner</p>
-                <h2 className="text-xl font-bold text-[#355e3b] mt-0.5">{selectedHomeowner.full_name}</h2>
-                {selectedHomeowner.email && (
-                  <p className="mt-0.5 text-sm text-black/60">{selectedHomeowner.email}</p>
-                )}
-                {isAdmin && (
-                  <div className="flex items-center gap-4 mt-3">
-                    <button
-                      onClick={() => openEditModal(selectedHomeowner)}
-                      className="flex items-center gap-1.5 text-sm font-medium text-black/60 hover:text-[#355e3b] transition-colors"
-                    >
-                      <PencilSimple size={16} /> Edit
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      className="flex items-center gap-1.5 text-sm font-medium text-black/60 hover:text-red-600 transition-colors"
-                    >
-                      <Trash size={16} /> Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-              {/* Info card */}
-              <div className="flex-1 space-y-4">
-                <div className="rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] p-4 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-black/60">Phone</span>
-                    <span className="font-medium">
-                      {selectedHomeowner.phone
-                        ? `${selectedHomeowner.dial_code ?? ""} ${selectedHomeowner.phone}`.trim()
-                        : "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-black/60">Email</span>
-                    <span className="font-medium">{selectedHomeowner.email ?? "—"}</span>
-                  </div>
-                  {selectedHomeowner.notes && (
-                    <div className="pt-1 border-t border-[#c9d9cc]">
-                      <p className="text-black/60 text-xs mb-1">Notes</p>
-                      <p className="text-sm">{selectedHomeowner.notes}</p>
+            {/* Title card */}
+            <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="h-14 w-14 shrink-0 rounded-xl bg-[#355e3b] flex items-center justify-center text-white text-2xl font-bold">
+                  {selectedHomeowner.full_name[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-black/40 uppercase tracking-wide">Homeowner</p>
+                  <h2 className="text-xl font-bold text-[#355e3b] mt-0.5">{selectedHomeowner.full_name}</h2>
+                  {selectedHomeowner.email && (
+                    <p className="mt-0.5 text-sm text-black/60">{selectedHomeowner.email}</p>
+                  )}
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        onClick={() => openEditModal(selectedHomeowner)}
+                        className="rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-xs font-medium text-[#355e3b] hover:bg-[#355e3b] hover:text-white transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                      >
+                        Delete
+                      </button>
                     </div>
                   )}
-                  <div className="flex justify-between pt-1 border-t border-[#c9d9cc]">
-                    <span className="text-black/60">Added by</span>
-                    <span className="font-medium">{selectedHomeowner.created_by ?? "Unknown"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-black/60">Added on</span>
-                    <span className="font-medium">{new Date(selectedHomeowner.created_at).toLocaleDateString()}</span>
-                  </div>
                 </div>
               </div>
+            </section>
 
-              {/* Assigned properties */}
-              <div className="flex-1">
-                <h3 className="text-base font-semibold text-[#355e3b] mb-3">
-                  Assigned Properties{!loadingProperties && ` (${assignedProperties.length})`}
-                </h3>
-                {loadingProperties ? (
-                  <p className="text-sm text-black/50">Loading…</p>
-                ) : assignedProperties.length === 0 ? (
-                  <p className="text-sm text-black/50">No properties assigned.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {assignedProperties.map((ap) => (
-                      <div
-                        key={ap.id}
-                        className="rounded-lg border border-[#c9d9cc] bg-white px-4 py-3"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={`h-2 w-2 rounded-full ${ap.is_active ? "bg-green-500" : "bg-gray-400"}`} />
-                          <p className="text-sm font-medium">{ap.name}</p>
-                        </div>
-                        <p className="text-xs text-black/50 mt-0.5">
-                          {[ap.section_name, ap.address].filter(Boolean).join(" · ")}
-                        </p>
-                      </div>
-                    ))}
+            {/* Info card */}
+            <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
+              <div className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-black/60">Phone</span>
+                  <span className="font-medium">
+                    {selectedHomeowner.phone
+                      ? `${selectedHomeowner.dial_code ?? ""} ${selectedHomeowner.phone}`.trim()
+                      : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-black/60">Email</span>
+                  <span className="font-medium">{selectedHomeowner.email ?? "—"}</span>
+                </div>
+                {selectedHomeowner.notes && (
+                  <div className="pt-1 border-t border-[#c9d9cc]">
+                    <p className="text-black/60 text-xs mb-1">Notes</p>
+                    <p className="text-sm">{selectedHomeowner.notes}</p>
                   </div>
                 )}
+                <div className="flex justify-between pt-1 border-t border-[#c9d9cc]">
+                  <span className="text-black/60">Added by</span>
+                  <span className="font-medium">{selectedHomeowner.created_by ?? "Unknown"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-black/60">Added on</span>
+                  <span className="font-medium">{new Date(selectedHomeowner.created_at).toLocaleDateString()}</span>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+
+            {/* Assigned properties card */}
+            <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
+              <h3 className="text-base font-bold text-[#355e3b] mb-4">
+                Assigned Properties{!loadingProperties && ` (${assignedProperties.length})`}
+              </h3>
+              {loadingProperties ? (
+                <p className="text-sm text-black/50">Loading…</p>
+              ) : assignedProperties.length === 0 ? (
+                <p className="text-sm text-black/50">No properties assigned.</p>
+              ) : (
+                <div className="space-y-2">
+                  {assignedProperties.map((ap) => (
+                    <div key={ap.id} className="rounded-lg border border-[#c9d9cc] bg-[#f3f8f4] px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${ap.is_active ? "bg-green-500" : "bg-gray-400"}`} />
+                        <p className="text-sm font-medium">{ap.name}</p>
+                      </div>
+                      <p className="text-xs text-black/50 mt-0.5">
+                        {[ap.section_name, ap.address].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </>
         ) : (
           /* List view */
