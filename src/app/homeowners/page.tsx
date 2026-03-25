@@ -365,31 +365,36 @@ export default function HomeownersPage() {
 
         {/* Detail view */}
         {selectedHomeowner ? (
-          <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
+          <>
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-1.5 text-sm text-black/50">
               <button
                 onClick={() => { setSelectedHomeowner(null); setAssignedProperties([]); }}
-                className="flex items-center gap-1 text-sm text-[#355e3b] hover:underline"
+                className="hover:text-[#355e3b] transition-colors"
               >
-                <span>&#8592;</span> Back to Homeowners
+                Homeowners
               </button>
-              {isAdmin && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openEditModal(selectedHomeowner)}
-                    className="rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-xs font-medium text-[#355e3b] hover:bg-[#355e3b] hover:text-white transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
-            </div>
+              <span>/</span>
+              <span className="text-black/70">{selectedHomeowner.full_name}</span>
+            </nav>
+
+          <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
+            {isAdmin && (
+              <div className="flex justify-end gap-2 mb-4">
+                <button
+                  onClick={() => openEditModal(selectedHomeowner)}
+                  className="rounded-lg border border-[#b8cbbd] px-3 py-1.5 text-xs font-medium text-[#355e3b] hover:bg-[#355e3b] hover:text-white transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
 
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               {/* Info card */}
@@ -433,7 +438,9 @@ export default function HomeownersPage() {
 
               {/* Assigned properties */}
               <div className="flex-1">
-                <h3 className="text-base font-semibold text-[#355e3b] mb-3">Assigned Properties</h3>
+                <h3 className="text-base font-semibold text-[#355e3b] mb-3">
+                  Assigned Properties{!loadingProperties && ` (${assignedProperties.length})`}
+                </h3>
                 {loadingProperties ? (
                   <p className="text-sm text-black/50">Loading…</p>
                 ) : assignedProperties.length === 0 ? (
@@ -459,6 +466,7 @@ export default function HomeownersPage() {
               </div>
             </div>
           </section>
+          </>
         ) : (
           /* List view */
           <section className="rounded-2xl border border-[#c9d9cc] bg-[#fcfefd] p-6 shadow-sm">
