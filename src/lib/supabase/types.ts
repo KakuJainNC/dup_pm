@@ -24,6 +24,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      homeowners: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string | null;
+          phone: string | null;
+          dial_code: string | null;
+          notes: string | null;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          email?: string | null;
+          phone?: string | null;
+          dial_code?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          email?: string | null;
+          phone?: string | null;
+          dial_code?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Relationships: [];
+      };
+      property_homeowners: {
+        Row: {
+          id: string;
+          property_id: string;
+          homeowner_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          property_id: string;
+          homeowner_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          property_id?: string;
+          homeowner_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_homeowners_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "property_homeowners_homeowner_id_fkey";
+            columns: ["homeowner_id"];
+            isOneToOne: false;
+            referencedRelation: "homeowners";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       properties: {
         Row: {
           id: string;
@@ -32,6 +101,13 @@ export type Database = {
           property_section_id: string;
           created_at: string;
           is_active: boolean;
+          house_phone: string | null;
+          main_door_code: string | null;
+          garage_code: string | null;
+          wifi_password: string | null;
+          property_manager_member_id: string | null;
+          maintenance_member_id: string | null;
+          housekeeping_member_id: string | null;
         };
         Insert: {
           id?: string;
@@ -40,6 +116,13 @@ export type Database = {
           property_section_id: string;
           created_at?: string;
           is_active?: boolean;
+          house_phone?: string | null;
+          main_door_code?: string | null;
+          garage_code?: string | null;
+          wifi_password?: string | null;
+          property_manager_member_id?: string | null;
+          maintenance_member_id?: string | null;
+          housekeeping_member_id?: string | null;
         };
         Update: {
           id?: string;
@@ -48,6 +131,13 @@ export type Database = {
           property_section_id?: string;
           created_at?: string;
           is_active?: boolean;
+          house_phone?: string | null;
+          main_door_code?: string | null;
+          garage_code?: string | null;
+          wifi_password?: string | null;
+          property_manager_member_id?: string | null;
+          maintenance_member_id?: string | null;
+          housekeeping_member_id?: string | null;
         };
         Relationships: [
           {

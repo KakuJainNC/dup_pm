@@ -7,7 +7,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/properties/[
   const { id } = await ctx.params;
   const { data, error } = await supabase
     .from("properties")
-    .select("id, name, address, property_section_id, created_at, created_by, is_active, property_sections(id, section_name)")
+    .select("id, name, address, property_section_id, created_at, created_by, is_active, house_phone, main_door_code, garage_code, wifi_password, property_manager_member_id, maintenance_member_id, housekeeping_member_id, property_sections(id, section_name)")
     .eq("id", id)
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -26,7 +26,18 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/properties
   }
 
   const { id } = await ctx.params;
-  const body = (await req.json()) as { name?: string; address?: string | null; is_active?: boolean };
+  const body = (await req.json()) as {
+    name?: string;
+    address?: string | null;
+    is_active?: boolean;
+    house_phone?: string | null;
+    main_door_code?: string | null;
+    garage_code?: string | null;
+    wifi_password?: string | null;
+    property_manager_member_id?: string | null;
+    maintenance_member_id?: string | null;
+    housekeeping_member_id?: string | null;
+  };
 
   // Toggle-only update (is_active without name)
   if (body.is_active !== undefined && body.name === undefined) {
@@ -45,7 +56,17 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/properties
 
   const { error } = await supabase
     .from("properties")
-    .update({ name, address: body.address ?? null })
+    .update({
+      name,
+      address: body.address ?? null,
+      house_phone: body.house_phone ?? null,
+      main_door_code: body.main_door_code ?? null,
+      garage_code: body.garage_code ?? null,
+      wifi_password: body.wifi_password ?? null,
+      property_manager_member_id: body.property_manager_member_id ?? null,
+      maintenance_member_id: body.maintenance_member_id ?? null,
+      housekeeping_member_id: body.housekeeping_member_id ?? null,
+    })
     .eq("id", id);
 
   if (error) {

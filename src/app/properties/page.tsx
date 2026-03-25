@@ -25,6 +25,12 @@ type Property = {
   property_sections?: { section_name: string } | null;
 };
 
+type TeamMember = {
+  id: string;
+  full_name: string;
+  role: string | null;
+};
+
 type Tab = "sections" | "properties";
 type PropertySubTab = "all" | "active" | "deactivated";
 
@@ -37,6 +43,7 @@ export default function PropertiesPage() {
 
   const [sections, setSections] = useState<PropertySection[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   const [sectionSearch, setSectionSearch] = useState("");
   const [propertySearch, setPropertySearch] = useState("");
@@ -51,6 +58,13 @@ export default function PropertiesPage() {
   const [propName, setPropName] = useState("");
   const [propAddress, setPropAddress] = useState("");
   const [propSectionId, setPropSectionId] = useState("");
+  const [propManagerId, setPropManagerId] = useState("");
+  const [propMaintenanceId, setPropMaintenanceId] = useState("");
+  const [propHousekeepingId, setPropHousekeepingId] = useState("");
+  const [propHousePhone, setPropHousePhone] = useState("");
+  const [propMainDoorCode, setPropMainDoorCode] = useState("");
+  const [propGarageCode, setPropGarageCode] = useState("");
+  const [propWifiPassword, setPropWifiPassword] = useState("");
   const [propError, setPropError] = useState("");
 
   const [showToast, setShowToast] = useState(false);
@@ -70,14 +84,17 @@ export default function PropertiesPage() {
   };
 
   const fetchData = useCallback(async () => {
-    const [secRes, propRes] = await Promise.all([
+    const [secRes, propRes, tmRes] = await Promise.all([
       fetch("/api/property-sections"),
       fetch("/api/properties"),
+      fetch("/api/team-members"),
     ]);
     const secPayload = await secRes.json() as { data?: PropertySection[] };
     const propPayload = await propRes.json() as { data?: Property[] };
+    const tmPayload = await tmRes.json() as { data?: TeamMember[] };
     setSections((secPayload.data ?? []).sort((a, b) => a.section_name.localeCompare(b.section_name)));
     setProperties((propPayload.data ?? []).sort((a, b) => a.name.localeCompare(b.name)));
+    setTeamMembers((tmPayload.data ?? []).sort((a, b) => a.full_name.localeCompare(b.full_name)));
   }, []);
 
   useEffect(() => {
@@ -121,13 +138,31 @@ export default function PropertiesPage() {
     const res = await fetch("/api/properties", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
-      body: JSON.stringify({ name: propName, address: propAddress || null, property_section_id: propSectionId }),
+      body: JSON.stringify({
+        name: propName,
+        address: propAddress || null,
+        property_section_id: propSectionId,
+        property_manager_member_id: propManagerId || null,
+        maintenance_member_id: propMaintenanceId || null,
+        housekeeping_member_id: propHousekeepingId || null,
+        house_phone: propHousePhone || null,
+        main_door_code: propMainDoorCode || null,
+        garage_code: propGarageCode || null,
+        wifi_password: propWifiPassword || null,
+      }),
     });
     const payload = await res.json() as { error?: string };
     if (!res.ok) { setPropError(payload.error ?? "Failed."); return; }
     setPropName("");
     setPropAddress("");
     setPropSectionId("");
+    setPropManagerId("");
+    setPropMaintenanceId("");
+    setPropHousekeepingId("");
+    setPropHousePhone("");
+    setPropMainDoorCode("");
+    setPropGarageCode("");
+    setPropWifiPassword("");
     setShowPropertyModal(false);
     await fetchData();
     showSuccess("Property added");
@@ -267,7 +302,7 @@ export default function PropertiesPage() {
                     onChange={(e) => setPropertySearch(e.target.value)}
                   />
                   <button
-                    onClick={() => { setPropName(""); setPropAddress(""); setPropSectionId(""); setPropError(""); setShowPropertyModal(true); }}
+                    onClick={() => { setPropName(""); setPropAddress(""); setPropSectionId(""); setPropManagerId(""); setPropMaintenanceId(""); setPropHousekeepingId(""); setPropHousePhone(""); setPropMainDoorCode(""); setPropGarageCode(""); setPropWifiPassword(""); setPropError(""); setShowPropertyModal(true); }}
                     className="rounded-lg bg-[#355e3b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors"
                   >
                     + Add
@@ -378,10 +413,10 @@ export default function PropertiesPage() {
       {/* ── Add Property modal ── */}
       {showPropertyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Add Property</h2>
-              <button onClick={() => { setPropName(""); setPropAddress(""); setPropSectionId(""); setPropError(""); setShowPropertyModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+              <button onClick={() => { setPropName(""); setPropAddress(""); setPropSectionId(""); setPropManagerId(""); setPropMaintenanceId(""); setPropHousekeepingId(""); setPropHousePhone(""); setPropMainDoorCode(""); setPropGarageCode(""); setPropWifiPassword(""); setPropError(""); setShowPropertyModal(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={addProperty} className="mt-4 space-y-3">
               <input
@@ -408,6 +443,68 @@ export default function PropertiesPage() {
                   <option key={s.id} value={s.id}>{s.section_name}</option>
                 ))}
               </select>
+
+              {/* Property Manager */}
+              <select
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                value={propManagerId}
+                onChange={(e) => setPropManagerId(e.target.value)}
+              >
+                <option value="">Property Manager (optional)</option>
+                {teamMembers.filter((m) => m.role === "property_manager").map((m) => (
+                  <option key={m.id} value={m.id}>{m.full_name}</option>
+                ))}
+              </select>
+
+              {/* Maintenance */}
+              <select
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                value={propMaintenanceId}
+                onChange={(e) => setPropMaintenanceId(e.target.value)}
+              >
+                <option value="">Maintenance (optional)</option>
+                {teamMembers.filter((m) => m.role === "maintenance").map((m) => (
+                  <option key={m.id} value={m.id}>{m.full_name}</option>
+                ))}
+              </select>
+
+              {/* Housekeeping */}
+              <select
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                value={propHousekeepingId}
+                onChange={(e) => setPropHousekeepingId(e.target.value)}
+              >
+                <option value="">Housekeeping (optional)</option>
+                {teamMembers.filter((m) => m.role === "housekeeping").map((m) => (
+                  <option key={m.id} value={m.id}>{m.full_name}</option>
+                ))}
+              </select>
+
+              <input
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                placeholder="House Phone (optional)"
+                value={propHousePhone}
+                onChange={(e) => setPropHousePhone(e.target.value)}
+              />
+              <input
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                placeholder="Main Door Code (optional)"
+                value={propMainDoorCode}
+                onChange={(e) => setPropMainDoorCode(e.target.value)}
+              />
+              <input
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                placeholder="Garage Code (optional)"
+                value={propGarageCode}
+                onChange={(e) => setPropGarageCode(e.target.value)}
+              />
+              <input
+                className="w-full rounded-lg border border-[#b8cbbd] px-3 py-2 text-sm outline-none focus:border-[#355e3b]"
+                placeholder="Wi-Fi Password (optional)"
+                value={propWifiPassword}
+                onChange={(e) => setPropWifiPassword(e.target.value)}
+              />
+
               {propError && <p className="text-xs text-red-600">{propError}</p>}
               <button className="w-full rounded-lg bg-[#355e3b] py-2 text-sm font-medium text-white hover:bg-[#2d5233] transition-colors" type="submit">
                 Add Property

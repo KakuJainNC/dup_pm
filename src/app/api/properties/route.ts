@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("properties")
-    .select("id, name, address, property_section_id, created_at, created_by, is_active, property_sections(id, section_name)")
+    .select("id, name, address, property_section_id, created_at, created_by, is_active, house_phone, main_door_code, garage_code, wifi_password, property_manager_member_id, maintenance_member_id, housekeeping_member_id, property_sections(id, section_name)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -34,6 +34,13 @@ export async function POST(request: NextRequest) {
     name?: string;
     address?: string;
     property_section_id?: string;
+    house_phone?: string;
+    main_door_code?: string;
+    garage_code?: string;
+    wifi_password?: string;
+    property_manager_member_id?: string;
+    maintenance_member_id?: string;
+    housekeeping_member_id?: string;
   };
   const name = body.name?.trim();
   const address = body.address?.trim() ?? null;
@@ -53,6 +60,13 @@ export async function POST(request: NextRequest) {
     address: address || null,
     property_section_id: propertySectionId,
     created_by: user?.email ?? null,
+    house_phone: body.house_phone?.trim() || null,
+    main_door_code: body.main_door_code?.trim() || null,
+    garage_code: body.garage_code?.trim() || null,
+    wifi_password: body.wifi_password?.trim() || null,
+    property_manager_member_id: body.property_manager_member_id || null,
+    maintenance_member_id: body.maintenance_member_id || null,
+    housekeeping_member_id: body.housekeeping_member_id || null,
   });
 
   if (error) {
