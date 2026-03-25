@@ -76,6 +76,9 @@ export default function TeamMembersPage() {
   const [toastMessage, setToastMessage] = useState("Done");
   const [detailMember, setDetailMember] = useState<TeamMember | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,6 +95,14 @@ export default function TeamMembersPage() {
     setMembers((payload.data ?? []).sort((a, b) => a.full_name.localeCompare(b.full_name)));
   }, []);
 
+  const fetchProfile = useCallback(async () => {
+    const authHeader = await getAuthHeader();
+    if (!authHeader) return;
+    const res = await fetch("/api/profile", { headers: { Authorization: authHeader } });
+    const payload = await res.json() as { data?: { app_role: string } };
+    setIsAdmin(payload.data?.app_role === "admin");
+  }, [getAuthHeader]);
+
   const fetchRoles = useCallback(async () => {
     const res = await fetch("/api/roles");
     const payload = await res.json() as { data?: { name: string }[] };
@@ -105,7 +116,8 @@ export default function TeamMembersPage() {
     setImageMap(getImageMap());
     void fetchMembers();
     void fetchRoles();
-  }, [fetchMembers, fetchRoles]);
+    void fetchProfile();
+  }, [fetchMembers, fetchRoles, fetchProfile]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,6 +188,31 @@ export default function TeamMembersPage() {
     }
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const deleteMember = async () => {
+    if (!detailMember) return;
+    const authHeader = await getAuthHeader();
+    if (!authHeader) return;
+    setDeleting(true);
+    const res = await fetch(`/api/team-members/${detailMember.id}`, {
+      method: "DELETE",
+      headers: { Authorization: authHeader },
+    });
+    const payload = await res.json() as { error?: string };
+    setDeleting(false);
+    if (!res.ok) {
+      setToastMessage(payload.error ?? "Failed to delete.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
+    setDetailMember(null);
+    setConfirmDelete(false);
+    await fetchMembers();
+    setToastMessage("Team member deleted");
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
   };
 
   const filtered = members.filter((m) =>
@@ -367,11 +404,11 @@ export default function TeamMembersPage() {
         </div>
       )}
       {detailMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDetailMember(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setDetailMember(null); setConfirmDelete(false); }}>
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#355e3b]">Entry Details</h2>
-              <button onClick={() => setDetailMember(null)} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
+              <button onClick={() => { setDetailMember(null); setConfirmDelete(false); }} className="text-black hover:text-[#355e3b] text-xl leading-none">&times;</button>
             </div>
             <div className="mt-4 space-y-3">
               <div className="flex items-center gap-3">
@@ -405,6 +442,24 @@ export default function TeamMembersPage() {
                   <span className="font-medium">{new Date(detailMember.created_at).toLocaleString()}</span>
                 </div>
               </div>
+              {isAdmin && (
+                confirmDelete ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="text-sm font-medium text-red-700">Delete this team member?</p>
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={deleteMember} disabled={deleting} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors">{deleting ? "Deleting…" : "Yes, delete"}</button>
+                      <button onClick={() => setConfirmDelete(false)} className="rounded-lg border border-[#c9d9cc] px-3 py-1.5 text-sm font-medium text-black hover:bg-[#f3f8f4] transition-colors">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="w-full rounded-lg border border-red-200 py-1.5 text-sm font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                  >
+                    Delete
+                  </button>
+                )
+              )}
             </div>
           </div>
         </div>
