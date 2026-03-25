@@ -116,6 +116,9 @@ export default function HomeownersPage() {
   const [editSelectedPropertyIds, setEditSelectedPropertyIds] = useState<string[]>([]);
   const [editError, setEditError] = useState("");
 
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   // Toast
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("Done");
@@ -468,7 +471,7 @@ export default function HomeownersPage() {
     <div className="min-h-screen bg-[#f3f8f4] font-sans text-black">
       {selectedHomeowner ? (
         <DetailBand items={[
-          { label: "Homeowners", onClick: () => { setSelectedHomeowner(null); setAssignedProperties([]); } },
+          { label: "Homeowners", onClick: () => { setSelectedHomeowner(null); setAssignedProperties([]); setConfirmDelete(false); } },
           { label: selectedHomeowner.full_name },
         ]} />
       ) : (
@@ -502,12 +505,23 @@ export default function HomeownersPage() {
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={handleDelete}
-                        className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-                      >
-                        Delete
-                      </button>
+                      {!confirmDelete && (
+                        <button
+                          onClick={() => setConfirmDelete(true)}
+                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {isAdmin && confirmDelete && (
+                    <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                      <p className="text-sm font-medium text-red-700">Delete this homeowner?</p>
+                      <div className="mt-2 flex gap-2">
+                        <button onClick={handleDelete} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors">Yes, delete</button>
+                        <button onClick={() => setConfirmDelete(false)} className="rounded-lg border border-[#c9d9cc] px-3 py-1.5 text-xs font-medium text-black hover:bg-[#f3f8f4] transition-colors">Cancel</button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -607,6 +621,7 @@ export default function HomeownersPage() {
                       <th className="w-12 px-4 py-3"></th>
                       <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Name</th>
                       <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Properties</th>
+                      <th className="px-4 py-3 text-center font-semibold text-[#355e3b]"># Props</th>
                       <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Email</th>
                       <th className="px-4 py-3 text-left font-semibold text-[#355e3b]">Phone</th>
                     </tr>
@@ -637,6 +652,15 @@ export default function HomeownersPage() {
                                 ))
                               )}
                             </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {props.length > 0 ? (
+                              <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#355e3b]/10 text-xs font-semibold text-[#355e3b]">
+                                {props.length}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-black/40">0</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-black/70">{hw.email ?? "—"}</td>
                           <td className="px-4 py-3 text-black/70">

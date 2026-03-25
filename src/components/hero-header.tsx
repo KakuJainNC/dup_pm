@@ -12,12 +12,15 @@ export function HeroHeader() {
     supabase.auth.getSession().then(({ data }) => {
       const user = data.session?.user;
       if (!user) return;
-      const name =
+      const fullName: string | undefined =
         user.user_metadata?.full_name ??
-        user.user_metadata?.name ??
-        user.email ??
-        null;
-      setDisplayName(name);
+        user.user_metadata?.name;
+      const firstName = fullName
+        ? fullName.split(" ")[0]
+        : user.email
+          ? user.email.split("@")[0]
+          : null;
+      setDisplayName(firstName ?? null);
     });
   }, []);
 

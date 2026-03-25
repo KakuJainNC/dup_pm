@@ -208,17 +208,25 @@ export default function PropertiesPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 rounded-xl border border-[#c9d9cc] bg-[#f3f8f4] p-1 w-fit mb-6">
-            {(["sections", "properties"] as Tab[]).map((tab) => (
+            {([
+              { key: "sections" as Tab, label: "Sections", count: sections.length },
+              { key: "properties" as Tab, label: "Properties", count: properties.length },
+            ]).map(({ key, label, count }) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`rounded-lg px-5 py-2 text-sm font-medium capitalize transition-colors ${
-                  activeTab === tab
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-medium transition-colors ${
+                  activeTab === key
                     ? "bg-[#355e3b] text-white shadow-sm"
                     : "text-black hover:text-[#355e3b]"
                 }`}
               >
-                {tab}
+                {label}
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                  activeTab === key ? "bg-white/20 text-white" : "bg-[#355e3b]/10 text-[#355e3b]"
+                }`}>
+                  {count}
+                </span>
               </button>
             ))}
           </div>

@@ -43,15 +43,23 @@ export async function DELETE(req: NextRequest, ctx: RouteContext<"/api/homeowner
   const supabase = getSupabaseRouteClient(authHeader);
   if (!supabase) return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  // Decode user ID from the JWT payload directly (avoids auth server round-trip)
+  let userId: string;
+  try {
+    const base64 = authHeader.replace("Bearer ", "").split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(Buffer.from(base64, "base64").toString()) as { sub?: string };
+    if (!payload.sub) throw new Error("No sub");
+    userId = payload.sub;
+  } catch {
+    return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+  }
 
   // Admin only
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile } = await (supabase as any)
     .from("profiles")
     .select("app_role")
-    .eq("id", user.id)
+    .eq("id", userId)
     .single();
 
   if (profile?.app_role !== "admin") {
