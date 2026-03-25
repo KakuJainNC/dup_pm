@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
+import { Footer } from "@/components/footer";
 
 type Profile = {
   id: string;
@@ -464,6 +465,7 @@ export default function TeamMembersPage() {
           </div>
         </div>
       )}
+      <Footer />
       {showToast && <Toast message={toastMessage} />}
     </div>
   );

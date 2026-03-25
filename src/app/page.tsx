@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { HeroHeader } from "@/components/hero-header";
+import { Footer } from "@/components/footer";
 import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -140,6 +141,7 @@ export default async function Home() {
           ))}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

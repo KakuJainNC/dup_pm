@@ -6,6 +6,7 @@ import { Buildings, House } from "@phosphor-icons/react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
+import { Footer } from "@/components/footer";
 
 type PropertySection = {
   id: string;
@@ -478,6 +479,7 @@ export default function PropertiesPage() {
         </div>
       )}
 
+      <Footer />
       {showToast && <Toast message={toastMessage} />}
     </div>
   );

@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { DetailBand } from "@/components/detail-band";
 import { Toast } from "@/components/toast";
+import { Footer } from "@/components/footer";
 
 type Profile = {
   app_role: "admin" | "manager" | "viewer";
@@ -598,6 +599,7 @@ export default function HomeownersPage() {
         </div>
       )}
 
+      <Footer />
       {showToast && <Toast message={toastMessage} />}
     </div>
   );

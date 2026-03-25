@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
+import { Footer } from "@/components/footer";
 
 type PropertySection = {
   id: string;
@@ -427,6 +428,7 @@ export default function SectionDetailPage() {
           </Link>
         </div>
       </main>
+      <Footer />
       {showToast && <Toast message={toastMessage} />}
     </div>
   );

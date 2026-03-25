@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { DetailBand } from "@/components/detail-band";
 import { Toast } from "@/components/toast";
+import { Footer } from "@/components/footer";
 
 type Property = {
   id: string;
@@ -591,6 +592,7 @@ function PropertyDetailContent() {
         </div>
       )}
 
+      <Footer />
       {showToast && <Toast message={toastMessage} />}
     </div>
   );

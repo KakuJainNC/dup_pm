@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
+import { Footer } from "@/components/footer";
 
 type NotificationConfig = {
   id: string;
@@ -169,6 +170,7 @@ export default function NotificationsPage() {
         </div>
       )}
 
+      <Footer />
       {showToast && <Toast message="Done" />}
     </div>
   );

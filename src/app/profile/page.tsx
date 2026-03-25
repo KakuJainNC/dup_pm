@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
+import { Footer } from "@/components/footer";
 
 const STORAGE_KEY = "pm_member_images";
 
@@ -312,6 +313,7 @@ export default function ProfilePage() {
           </div>
         </section>
       </main>
+      <Footer />
       {showToast && <Toast message="Profile updated" />}
     </div>
   );

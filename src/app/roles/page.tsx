@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { ShieldCheck } from "@phosphor-icons/react";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
+import { Footer } from "@/components/footer";
 import { NAV_ITEMS, type NavItemKey } from "@/lib/nav-config";
 
 type Role = {
@@ -409,6 +410,7 @@ export default function RolesPage() {
         </div>
       )}
 
+      <Footer />
       {showToast && <Toast message={toastMessage} />}
     </div>
   );
