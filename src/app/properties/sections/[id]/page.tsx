@@ -7,6 +7,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageBand } from "@/components/page-band";
 import { Toast } from "@/components/toast";
 import { Footer } from "@/components/footer";
+import { BackButton } from "@/components/back-button";
 
 type PropertySection = {
   id: string;
@@ -428,6 +429,7 @@ export default function SectionDetailPage() {
           </Link>
         </div>
       </main>
+      <BackButton href="/properties" />
       <Footer />
       {showToast && <Toast message={toastMessage} />}
     </div>
